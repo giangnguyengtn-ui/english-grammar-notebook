@@ -209,6 +209,15 @@
   .warn-item{ border-left:3px solid var(--bad); background:var(--bad-tint); border-radius:0 7px 7px 0; padding:8px 11px; margin-bottom:8px; }
   .warn-item .w-snip{ font-size:0.85rem; color:var(--ink); font-style:italic; }
   .warn-item .w-tip{ font-size:0.8rem; color:var(--bad); margin-top:3px; }
+  .chat-log{ display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; padding:12px; background:var(--paper); border:1px solid var(--line); border-radius:9px; margin-bottom:10px; }
+  .chat-bubble{ max-width:80%; padding:8px 12px; border-radius:12px; font-size:0.89rem; position:relative; }
+  .chat-bubble.me{ align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:3px; }
+  .chat-bubble.ai{ align-self:flex-start; background:var(--paper-raised); border:1px solid var(--line); border-bottom-left-radius:3px; padding-right:34px; }
+  .chat-bubble .chat-text{ white-space:pre-wrap; }
+  .chat-bubble .chat-tip{ margin-top:6px; font-size:0.78rem; color:var(--gold); background:var(--gold-tint); border-radius:6px; padding:5px 8px; }
+  .chat-bubble .chat-replay{ position:absolute; top:6px; right:6px; background:none; border:none; font-size:0.8rem; color:var(--ink-faint); padding:2px; }
+  .chat-bubble .chat-replay:hover{ color:var(--accent-strong); }
+  .chat-status{ font-size:0.78rem; color:var(--ink-faint); min-height:1.2em; margin-bottom:6px; }
   .dict-controls{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px; }
   .shadow-row{ display:flex; flex-direction:column; gap:6px; }
   .shadow-row .prompt{ font-style:italic; }
@@ -665,18 +674,21 @@ function buildDictationSentences(day){
   });
 }
 
+var AI_WORKER_URL = "https://english-speaking.giang-nguyen-gtn.workers.dev/chat";
+
 var STORAGE_KEY = "eng-notebook-v2";
 var state = load();
 state.corr = state.corr || {};
 state.dictation = state.dictation || {};
 state.speaking = state.speaking || {};
+state.chat = state.chat || {};
 
 function load(){
   try{
     var raw = localStorage.getItem(STORAGE_KEY);
     if(raw) return JSON.parse(raw);
   }catch(e){}
-  return { current:null, blanks:{}, corr:{}, vocab:{}, vocabOpen:{}, writing:{}, writeDone:{}, errlog:[], dictation:{}, speaking:{} };
+  return { current:null, blanks:{}, corr:{}, vocab:{}, vocabOpen:{}, writing:{}, writeDone:{}, errlog:[], dictation:{}, speaking:{}, chat:{} };
 }
 function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -1162,6 +1174,106 @@ function renderMain(){
       });
     }
     main.appendChild(spkSec);
+  }
+
+  // AI conversation — natural 1:1 speaking practice
+  {
+    var aiSec = el("section","block");
+    aiSec.appendChild(el("h2",null,'Trò chuyện AI — luyện nói tự nhiên 1:1 <span class="tag">beta</span>'));
+    aiSec.appendChild(el("div","intro",'Nói chuyện trực tiếp bằng giọng nói với AI về chủ đề hôm nay ('+d.topic+') hoặc lái sang chủ đề đời sống bất kỳ — AI sẽ trả lời tự nhiên, ngắn gọn như hội thoại thật, và nhẹ nhàng gợi ý nếu bạn nói sai ngữ pháp.'));
+    if(!SpeechRec){
+      aiSec.appendChild(el("div","empty-note","Ghi âm cần Chrome/Edge. Bạn vẫn có thể gõ chữ để trò chuyện bên dưới."));
+    }
+    var chatLog = el("div","chat-log");
+    aiSec.appendChild(chatLog);
+    var chatKey = d.key;
+    function renderChatLog(){
+      var hist = state.chat[chatKey] || [];
+      chatLog.innerHTML = "";
+      if(hist.length===0){
+        chatLog.appendChild(el("div","empty-note","Chưa có hội thoại nào — bấm micro hoặc gõ để bắt đầu."));
+      }
+      hist.forEach(function(m){
+        var bubble = el("div","chat-bubble "+(m.role==="user"?"me":"ai"));
+        var mainText = m.content, tip = "";
+        var tipIdx = m.content.indexOf("💡");
+        if(m.role==="assistant" && tipIdx>-1){ mainText = m.content.slice(0,tipIdx).trim(); tip = m.content.slice(tipIdx); }
+        bubble.appendChild(el("div","chat-text",mainText));
+        if(tip) bubble.appendChild(el("div","chat-tip",tip));
+        if(m.role==="assistant"){
+          var replayBtn = el("button","chat-replay","🔊");
+          replayBtn.title = "Nghe lại";
+          replayBtn.addEventListener("click", function(){ speak(mainText, 0.95); });
+          bubble.appendChild(replayBtn);
+        }
+        chatLog.appendChild(bubble);
+      });
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+    renderChatLog();
+
+    var statusEl = el("div","chat-status","");
+    aiSec.appendChild(statusEl);
+
+    async function sendTurn(text){
+      if(!text || !text.trim()) return;
+      state.chat[chatKey] = state.chat[chatKey] || [];
+      state.chat[chatKey].push({role:"user", content:text.trim()});
+      save(); renderChatLog();
+      statusEl.textContent = "AI đang trả lời...";
+      try{
+        var res = await fetch(AI_WORKER_URL, {
+          method:"POST",
+          headers:{"content-type":"application/json"},
+          body: JSON.stringify({
+            topic: d.topic + (d.speaking && d.speaking.length ? (" | " + d.speaking[0]) : ""),
+            history: state.chat[chatKey].slice(0,-1),
+            message: text.trim()
+          })
+        });
+        var data = await res.json();
+        if(!res.ok || !data.reply){
+          statusEl.textContent = "Lỗi: " + (data.error==="upstream_error" ? "backend/API key có thể chưa cấu hình xong" : (data.error || "không kết nối được"));
+          return;
+        }
+        state.chat[chatKey].push({role:"assistant", content:data.reply});
+        save(); renderChatLog();
+        statusEl.textContent = "";
+        var tipIdx = data.reply.indexOf("💡");
+        speak(tipIdx>-1 ? data.reply.slice(0,tipIdx).trim() : data.reply, 0.95);
+      }catch(e){
+        statusEl.textContent = "Không kết nối được tới backend — kiểm tra lại kết nối mạng.";
+      }
+    }
+
+    var ctr2 = el("div","dict-controls");
+    var typed = document.createElement("input");
+    typed.type = "text"; typed.placeholder = "Gõ để trò chuyện (hoặc dùng micro)...";
+    typed.style.flex = "1"; typed.style.minWidth = "220px";
+    typed.addEventListener("keydown", function(e){ if(e.key==="Enter" && typed.value.trim()){ sendTurn(typed.value); typed.value=""; } });
+    ctr2.appendChild(typed);
+    var sendBtn = el("button","btn small","Gửi");
+    sendBtn.addEventListener("click", function(){ if(typed.value.trim()){ sendTurn(typed.value); typed.value=""; } });
+    ctr2.appendChild(sendBtn);
+    if(SpeechRec){
+      var micBtn = el("button","btn ghost small","🎤 Nói");
+      var activeRec = null;
+      micBtn.addEventListener("click", function(){
+        if(activeRec){ activeRec.stop(); return; }
+        micBtn.textContent = "⏹ Đang nghe...";
+        activeRec = startRecording(function(interim){ typed.value = interim; }, function(finalText){
+          micBtn.textContent = "🎤 Nói"; activeRec = null;
+          if(finalText){ typed.value = ""; sendTurn(finalText); }
+        }, function(){ micBtn.textContent = "🎤 Nói"; activeRec = null; });
+      });
+      ctr2.appendChild(micBtn);
+    }
+    var clearBtn = el("button","btn ghost small","Xóa hội thoại");
+    clearBtn.addEventListener("click", function(){ state.chat[chatKey] = []; save(); renderChatLog(); });
+    ctr2.appendChild(clearBtn);
+    aiSec.appendChild(ctr2);
+
+    main.appendChild(aiSec);
   }
 
   // writing
