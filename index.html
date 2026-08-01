@@ -1741,7 +1741,7 @@ function renderMain(){
           html += '<div class="warn-item"><div class="w-snip">"' + w.snippet + '"</div><div class="w-tip">' + w.tip + '</div></div>';
         });
       } else {
-        html += '<div class="wr-sub">Cảnh báo ngữ pháp</div><div class="empty-note">Không phát hiện lỗi nào trong danh sách lỗi thường gặp đã kiểm tra — nhưng công cụ này chỉ dò được vài mẫu lỗi cố định, không phải kiểm tra ngữ pháp đầy đủ. Nên dùng nút "Sao chép + nhờ Claude chấm chi tiết" để được chấm kỹ hơn.</div>';
+        html += '<div class="wr-sub">Cảnh báo ngữ pháp</div><div class="empty-note">Không phát hiện lỗi nào trong danh sách lỗi thường gặp đã kiểm tra — nhưng công cụ này chỉ dò được vài mẫu lỗi cố định, không phải kiểm tra ngữ pháp đầy đủ. Nên dùng nút "Copy để nhờ AI chấm" để được chấm kỹ hơn.</div>';
       }
       reportBox.innerHTML = html;
       reportBox.style.display = "block";
