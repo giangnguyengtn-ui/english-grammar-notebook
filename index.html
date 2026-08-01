@@ -93,7 +93,11 @@
   /* grammar use-cards */
   .grammar-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
   .grammar-card{ border:1px solid var(--line); border-radius:10px; padding:16px 17px; background:var(--paper); }
-  .grammar-card > .gname{ font-family:var(--serif); font-size:1.02rem; font-weight:600; color:var(--accent-strong); margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed var(--line); }
+  .grammar-card > .gname{ font-family:var(--serif); font-size:1.02rem; font-weight:600; color:var(--accent-strong); margin-bottom:10px; }
+  .struct-table{ display:flex; flex-direction:column; gap:4px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed var(--line); }
+  .struct-row{ display:grid; grid-template-columns:64px 1fr; gap:8px; align-items:baseline; }
+  .struct-row .s-lbl{ font-family:var(--mono); font-size:0.65rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-faint); }
+  .struct-row .s-val{ font-family:var(--mono); font-size:0.82rem; color:var(--accent-strong); background:var(--accent-tint); border-radius:5px; padding:3px 8px; display:inline-block; }
   .use-item{ margin-bottom:12px; }
   .use-item:last-child{ margin-bottom:0; }
   .use-item .u-title{ font-size:0.87rem; font-weight:600; color:var(--ink); display:flex; gap:6px; align-items:baseline; }
@@ -259,12 +263,15 @@
    ============================================================ */
 
 var READING = {
-  bbc6: {title:"BBC · 6 Minute English", url:"https://www.bbc.co.uk/learningenglish/english/features/6-minute-english", desc:"Hội thoại 6 phút + từ vựng, mức B1-B2"},
-  bbcHome: {title:"BBC Learning English", url:"https://www.bbc.co.uk/learningenglish/", desc:"Trang chủ — bài học theo chủ đề, mọi trình độ"},
-  bne: {title:"Breaking News English", url:"https://breakingnewsenglish.com/graded-news-articles.html", desc:"Tin tức chia theo 7 cấp độ đọc"},
-  bneHome: {title:"Breaking News English", url:"https://breakingnewsenglish.com/", desc:"Trang chủ — bài mới mỗi ngày"},
-  nil: {title:"News in Levels", url:"https://www.newsinlevels.com/", desc:"Cùng 1 tin, 3 cấp độ từ vựng (1-3 nghìn từ)"},
-  tedEd: {title:"TED-Ed", url:"https://ed.ted.com/", desc:"Video ngắn có phụ đề + transcript, nhiều chủ đề"}
+  finMoneyWorries: {title:"BNE · Money Worries", url:"https://breakingnewsenglish.com/2409/240926-money-worries.html", desc:"Lo lắng tài chính cá nhân — bấm chọn 1 trong 7 mức đọc ngay trên trang"},
+  finSharePrices: {title:"BNE · Share Prices Tumble", url:"https://breakingnewsenglish.com/0703/070315-share_prices.html", desc:"Thị trường chứng khoán lao dốc — nhiều câu quá khứ đơn / hiện tại hoàn thành"},
+  finTechStocks: {title:"BNE · Tech Stocks Surge", url:"https://breakingnewsenglish.com/2010/201014-tech-stocks.html", desc:"Cổ phiếu công nghệ tăng mạnh — nhiều câu hiện tại hoàn thành (tiếp diễn)"},
+  finAramcoIPO: {title:"BNE · Saudi Aramco IPO", url:"https://breakingnewsenglish.com/1911/191111-saudi-aramco-ipo.html", desc:"Thương vụ IPO lớn nhất lịch sử — nhiều mốc thời gian, hợp Quá khứ hoàn thành"},
+  finCrowdfunding: {title:"BNE · Crowdfunding", url:"https://breakingnewsenglish.com/1806/180603-crowdfunding-2.html", desc:"Gọi vốn cộng đồng — nói về xu hướng & dự đoán tương lai của đầu tư"},
+  finCashHandout: {title:"BNE · Cash Handouts", url:"https://breakingnewsenglish.com/2111/211108-cash-handout.html", desc:"Chính sách phát tiền mặt — tốt để ôn trộn nhiều thì trong 1 bài"},
+  finIncomeInequality: {title:"BNE · Income Inequality", url:"https://breakingnewsenglish.com/1701/170118-income-inequality.html", desc:"Bất bình đẳng thu nhập — mở rộng vốn từ tài chính-xã hội"},
+  finMoneyHappiness: {title:"BNE · Money and Happiness", url:"https://breakingnewsenglish.com/1604/160411-money-happiness.html", desc:"Tiền bạc và hạnh phúc — hợp để lấy ý viết bài luận cuối tuần"},
+  investingHome: {title:"Investing.com — Tin tài chính trực tiếp", url:"https://www.investing.com/news/", desc:"Tin tài chính, chứng khoán, đầu tư cập nhật liên tục (văn bản gốc, không chia cấp độ)"}
 };
 
 function normalizeVocabItem(v, srcKey, srcIdx){
@@ -274,16 +281,16 @@ function normalizeVocabItem(v, srcKey, srcIdx){
 var DAYS = [
 {
   key:"mon", code:"T2", label:"Thứ 2", topic:"Hiện tại đơn vs Hiện tại tiếp diễn", weekday:1,
-  reading:{ links:[READING.bbc6, READING.nil], hint:"Tìm bài về chủ đề 'daily routine' / 'habits' — chú ý câu nào tác giả dùng thì hiện tại đơn (thói quen) và câu nào dùng tiếp diễn (đang xảy ra/tạm thời)." },
+  reading:{ links:[READING.finMoneyWorries, READING.investingHome], hint:"Đọc bài Money Worries, bấm chọn mức đọc phù hợp trên trang. Gạch chân câu dùng Present Simple (thói quen chi tiêu, sự thật tài chính) và Present Continuous (xu hướng đang thay đổi, ví dụ giá cả 'is rising')." },
   grammar:[
-    { name:"Present Simple", uses:[
+    { name:"Present Simple", structure:{aff:"S + V(s/es)", neg:"S + do/does + not + V", q:"Do/Does + S + V?"}, uses:[
       {title:"1. Thói quen, hành động lặp lại", note:"Đi kèm trạng từ tần suất (always, usually, often, sometimes, rarely, never). Diễn tả điều xảy ra đều đặn — không phải ngay lúc nói.", ex:["I go to the gym three times a week.","She rarely eats meat.","They usually have dinner at 7pm."]},
       {title:"2. Sự thật hiển nhiên, chân lý khoa học", note:"Đúng ở mọi thời điểm, không phụ thuộc hiện tại hay tương lai.", ex:["Water boils at 100°C at sea level.","The sun rises in the east.","Light travels faster than sound."]},
       {title:"3. Trạng thái, tính chất lâu dài", note:"Nghề nghiệp, nơi ở, đặc điểm cố định — bản chất là trạng thái, không phải hành động.", ex:["She works as a lawyer.","He lives in Hanoi.","This fabric feels soft."]},
       {title:"4. Lịch trình cố định, thời gian biểu chính thức", note:"Tàu, máy bay, rạp chiếu phim, sự kiện chính thức — không phụ thuộc ý muốn cá nhân. Khác với kế hoạch cá nhân (dùng Present Continuous).", ex:["The train leaves at 9am.","The store opens at 8.","The film starts at 7:30 tonight."]},
       {title:"5. Bình luận trực tiếp / hướng dẫn / kể chuyện sinh động", note:"Nâng cao: tường thuật thể thao, hướng dẫn công thức từng bước, hoặc 'historic present' khi kể chuyện cho sinh động.", ex:["Ronaldo passes to Messi — and Messi scores!","First, you add the sugar, then you mix it well.","So this guy walks into a bar and says..."]}
     ]},
-    { name:"Present Continuous", uses:[
+    { name:"Present Continuous", structure:{aff:"S + am/is/are + V-ing", neg:"S + am/is/are + not + V-ing", q:"Am/Is/Are + S + V-ing?"}, uses:[
       {title:"1. Đang diễn ra ngay lúc nói", note:"Hành động đang xảy ra tại chính thời điểm nói.", ex:["I'm writing an email right now.","Please be quiet — I'm trying to concentrate."]},
       {title:"2. Tình huống tạm thời", note:"Đúng trong một giai đoạn nhất định, không phải mãi mãi — dù không nhất thiết đang xảy ra ngay lúc nói.", ex:["I'm staying at my sister's this week.","She's working from home this month."]},
       {title:"3. Xu hướng đang thay đổi dần", note:"Một quá trình đang tiến triển theo thời gian.", ex:["The population is growing rapidly.","My English is getting better."]},
@@ -332,15 +339,15 @@ var DAYS = [
 },
 {
   key:"tue", code:"T3", label:"Thứ 3", topic:"Quá khứ đơn vs Hiện tại hoàn thành", weekday:2,
-  reading:{ links:[READING.bne, READING.nil], hint:"Đọc 1 bài tin và để ý câu mở đầu (thường Present Perfect — tin mới) so với các câu kể chi tiết có mốc thời gian (Past Simple)." },
+  reading:{ links:[READING.finSharePrices, READING.investingHome], hint:"Đọc bài Share Prices Tumble — để ý câu mở đầu (thường Present Perfect — tin mới, VD 'have fallen') so với các câu kể chi tiết có mốc thời gian (Past Simple)." },
   grammar:[
-    { name:"Past Simple", uses:[
+    { name:"Past Simple", structure:{aff:"S + V2/-ed", neg:"S + did not + V", q:"Did + S + V?"}, uses:[
       {title:"1. Hành động đã kết thúc tại thời điểm xác định", note:"Có mốc thời gian rõ ràng: yesterday, last week, in 2020, at 6pm...", ex:["I finished the report yesterday.","She called me last night.","They moved to Hue in 2019."]},
       {title:"2. Chuỗi hành động liên tiếp (kể chuyện)", note:"Diễn tả các sự việc xảy ra lần lượt, nối tiếp nhau.", ex:["He woke up, brushed his teeth, and left for work.","She opened the door, walked in, and sat down."]},
       {title:"3. Thói quen trong quá khứ nay không còn", note:"Có thể thay bằng 'used to' để nhấn mạnh sự đối lập với hiện tại.", ex:["I played tennis every weekend when I was a kid.","We lived in Da Nang before we moved here."]},
       {title:"4. Sự thật / sự kiện lịch sử", note:"Thời điểm đã qua hẳn, không còn liên hệ ngữ pháp với hiện tại.", ex:["World War II ended in 1945.","Einstein published his theory of relativity in 1905."]}
     ]},
-    { name:"Present Perfect", uses:[
+    { name:"Present Perfect", structure:{aff:"S + have/has + V3/-ed", neg:"S + have/has + not + V3/-ed", q:"Have/Has + S + V3/-ed?"}, uses:[
       {title:"1. Kinh nghiệm sống (không nêu thời gian cụ thể)", note:"Trả lời 'đã từng...chưa?' — thường đi với ever/never.", ex:["I have been to Japan twice.","Have you ever tried durian?","She has never lied to me."]},
       {title:"2. Hành động vừa xảy ra, còn ảnh hưởng hiện tại", note:"Đi với just / already / yet.", ex:["I've just finished my homework.","She hasn't arrived yet.","We've already eaten."]},
       {title:"3. Bắt đầu trong quá khứ, còn tiếp diễn/còn giá trị đến hiện tại", note:"for + khoảng thời gian; since + mốc bắt đầu; hoặc trong khoảng thời gian CHƯA kết thúc (this week/month/year).", ex:["I've lived here for five years.","We've had three meetings this week.","She's worked here since 2020."]},
@@ -387,14 +394,14 @@ var DAYS = [
 },
 {
   key:"wed", code:"T4", label:"Thứ 4", topic:"Hiện tại hoàn thành vs HTHT tiếp diễn", weekday:3,
-  reading:{ links:[READING.bbc6, READING.tedEd], hint:"Tìm chủ đề 'hobbies' hoặc 'free time' — nghe cách người bản xứ nói 'how long' bằng Present Perfect Continuous." },
+  reading:{ links:[READING.finTechStocks, READING.investingHome], hint:"Đọc bài Tech Stocks Surge — tìm các câu dùng Present Perfect / Present Perfect Continuous khi mô tả đà tăng của cổ phiếu (VD 'have risen', 'has been climbing')." },
   grammar:[
-    { name:"Present Perfect (đơn)", uses:[
+    { name:"Present Perfect (đơn)", structure:{aff:"S + have/has + V3/-ed", neg:"S + have/has + not + V3/-ed", q:"Have/Has + S + V3/-ed?"}, uses:[
       {title:"1. Nhấn kết quả / số lượng hoàn thành", note:"Trả lời 'bao nhiêu / đã xong chưa' — không nhấn quá trình.", ex:["I've written 3 emails this morning.","She has read the whole book."]},
       {title:"2. Động từ trạng thái + khoảng thời gian dài", note:"Với stative verbs (know, live, love, want, believe...), luôn dùng Perfect đơn kể cả khi nói 'how long'.", ex:["I've known her for 10 years.","We've lived here since 2015."]},
       {title:"3. Hành động lặp lại, đếm được số lần", note:"Với 'how many times', 'several times'.", ex:["I've called him three times today.","She has visited Paris twice."]}
     ]},
-    { name:"Present Perfect Continuous", uses:[
+    { name:"Present Perfect Continuous", structure:{aff:"S + have/has + been + V-ing", neg:"S + have/has + not + been + V-ing", q:"Have/Has + S + been + V-ing?"}, uses:[
       {title:"1. Nhấn quá trình / khoảng thời gian liên tục", note:"Trả lời 'how long' — dùng cho động từ chỉ hành vi, không phải trạng thái.", ex:["I've been studying English for two years.","It's been raining since this morning."]},
       {title:"2. Hành động lặp lại trong một giai đoạn", note:"Nhấn tính lặp đi lặp lại gần đây, có thể tạm dừng.", ex:["I've been going to the gym a lot lately.","She's been calling me every day this week."]},
       {title:"3. Giải thích nguyên nhân cho tình trạng hiện tại", note:"Không nhấn số lượng hoàn thành, chỉ giải thích lý do/bằng chứng.", ex:["Your eyes are red — have you been crying?","The ground is wet. It's been raining."]},
@@ -438,15 +445,15 @@ var DAYS = [
 },
 {
   key:"thu", code:"T5", label:"Thứ 5", topic:"Quá khứ hoàn thành & QKHT tiếp diễn", weekday:4,
-  reading:{ links:[READING.nil, READING.bne], hint:"Tìm bài có yếu tố kể chuyện (storytelling) — chú ý các câu diễn tả việc gì xảy ra TRƯỚC một mốc quá khứ khác." },
+  reading:{ links:[READING.finAramcoIPO, READING.investingHome], hint:"Đọc bài Saudi Aramco IPO — tìm câu dùng Past Perfect khi tác giả nhắc lại việc gì đã xảy ra TRƯỚC một mốc thời gian khác trong bài." },
   grammar:[
-    { name:"Past Perfect", uses:[
+    { name:"Past Perfect", structure:{aff:"S + had + V3/-ed", neg:"S + had + not + V3/-ed", q:"Had + S + V3/-ed?"}, uses:[
       {title:"1. Xảy ra trước một mốc/hành động khác trong quá khứ", note:"Bắt buộc có một mốc quá khứ khác để so sánh — nếu chỉ có 1 hành động đơn lẻ, dùng Past Simple.", ex:["By the time I arrived, the meeting had already started.","She had left before I got there."]},
       {title:"2. Hoàn thành trước một thời điểm cụ thể (by + thời gian)", note:"—", ex:["By 2010, he had already retired.","By the age of 30, she had published three novels."]},
       {title:"3. Trong câu điều kiện loại 3 / wish về quá khứ", note:"Bước đệm cho Giai đoạn 1 (Tuần 2-3) — sẽ học sâu ở phần câu điều kiện.", ex:["If I had known, I would have called you.","I wish I had studied harder."]},
       {title:"4. Lùi thì trong câu tường thuật (reported speech)", note:"Khi tường thuật lại lời nói ở thì Past Simple/Present Perfect, lùi về Past Perfect.", ex:["She said she had finished the work.","He told me he had never seen that movie."]}
     ]},
-    { name:"Past Perfect Continuous", uses:[
+    { name:"Past Perfect Continuous", structure:{aff:"S + had + been + V-ing", neg:"S + had + not + been + V-ing", q:"Had + S + been + V-ing?"}, uses:[
       {title:"1. Nhấn quá trình kéo dài trước một mốc quá khứ khác", note:"Trả lời 'how long' tính đến thời điểm đó trong quá khứ.", ex:["They had been waiting for an hour when the bus finally came.","She had been working there for a year before she got promoted."]},
       {title:"2. Giải thích nguyên nhân của một tình huống trong quá khứ", note:"—", ex:["She was exhausted because she had been working all night.","His eyes were red because he had been crying."]},
       {title:"3. Hành động lặp lại nhiều lần trước một mốc quá khứ", note:"—", ex:["He had been trying to quit smoking for years before he finally succeeded."]}
@@ -487,25 +494,25 @@ var DAYS = [
 },
 {
   key:"fri", code:"T6", label:"Thứ 6", topic:"Các thì tương lai", weekday:5,
-  reading:{ links:[READING.bbcHome, READING.tedEd], hint:"Nghe một đoạn dự báo hoặc kế hoạch — chú ý người bản xứ chọn will/going to khi nào." },
+  reading:{ links:[READING.finCrowdfunding, READING.investingHome], hint:"Đọc bài Crowdfunding — tìm câu nói về xu hướng/dự đoán tương lai của hình thức gọi vốn này (will/going to)." },
   grammar:[
-    { name:"will", uses:[
+    { name:"will", structure:{aff:"S + will + V", neg:"S + will not (won't) + V", q:"Will + S + V?"}, uses:[
       {title:"1. Quyết định tức thời tại thời điểm nói", note:"Vừa nghĩ ra, chưa có kế hoạch từ trước.", ex:["The phone's ringing. — I'll get it.","I'm thirsty — I'll grab a drink."]},
       {title:"2. Dự đoán không có bằng chứng cụ thể", note:"Dựa trên quan điểm, niềm tin cá nhân — thường đi với 'I think/believe'.", ex:["I think it will rain tomorrow.","She'll probably be late, as usual."]},
       {title:"3. Lời hứa, đề nghị, đe dọa", note:"—", ex:["I'll always love you.","I'll help you move next week, I promise.","Stop, or I'll call the police!"]}
     ]},
-    { name:"going to", uses:[
+    { name:"going to", structure:{aff:"S + am/is/are + going to + V", neg:"S + am/is/are + not + going to + V", q:"Am/Is/Are + S + going to + V?"}, uses:[
       {title:"1. Kế hoạch, dự định đã có từ trước", note:"Đã quyết định trước thời điểm nói, chưa cần chi tiết cụ thể.", ex:["I'm going to start a new job next month.","We're going to renovate the kitchen."]},
       {title:"2. Dự đoán CÓ bằng chứng rõ ràng ngay trước mắt", note:"—", ex:["Look at those clouds — it's going to rain.","She's going to fall — look how she's leaning!"]}
     ]},
-    { name:"Present Continuous", uses:[
+    { name:"Present Continuous", structure:{aff:"S + am/is/are + V-ing", neg:"S + am/is/are + not + V-ing", q:"Am/Is/Are + S + V-ing?"}, uses:[
       {title:"1. Kế hoạch cá nhân đã sắp xếp cụ thể", note:"Có thời gian VÀ địa điểm cụ thể, khác 'going to' ở chỗ đã hoàn tất sắp xếp.", ex:["I'm meeting my dentist at 4pm on Thursday.","We're flying to Paris next week — tickets are booked."]}
     ]},
-    { name:"Present Simple", uses:[
+    { name:"Present Simple", structure:{aff:"S + V(s/es)", neg:"S + do/does + not + V", q:"Do/Does + S + V?"}, uses:[
       {title:"1. Lịch trình cố định, không phụ thuộc ý muốn cá nhân", note:"—", ex:["The film starts at 8.","The train departs at 6:45."]},
       {title:"2. Trong mệnh đề thời gian/điều kiện", note:"Sau when/after/before/if/as soon as/until — KHÔNG dùng 'will' dù mang nghĩa tương lai. Lỗi rất phổ biến.", ex:["I'll call you when I arrive. (không phải 'when I will arrive')","We'll start as soon as everyone is here."]}
     ]},
-    { name:"Future Continuous (nâng cao)", uses:[
+    { name:"Future Continuous (nâng cao)", structure:{aff:"S + will + be + V-ing", neg:"S + will not + be + V-ing", q:"Will + S + be + V-ing?"}, uses:[
       {title:"1. Hành động đang diễn ra tại một thời điểm xác định trong tương lai", note:"will be + V-ing", ex:["This time tomorrow, I'll be flying to Paris.","Don't call at 8 — I'll be having dinner."]},
       {title:"2. Hỏi lịch trình một cách lịch sự", note:"Không mang tính yêu cầu, chỉ hỏi thông tin.", ex:["Will you be using the car this evening?"]}
     ]}
@@ -549,7 +556,7 @@ var DAYS = [
 },
 {
   key:"sat", code:"T7", label:"Thứ 7", topic:"Ôn tập tổng hợp + Test", weekday:6, type:"review",
-  reading:{ links:[READING.bneHome, READING.nil], hint:"Đọc 1 bài báo bất kỳ và gạch chân mọi câu dùng các thì đã học tuần này — phân tích tại sao tác giả chọn thì đó." },
+  reading:{ links:[READING.finCashHandout, READING.finIncomeInequality], hint:"Đọc 1 trong 2 bài (chính sách tiền mặt / bất bình đẳng thu nhập) và gạch chân MỌI câu dùng các thì đã học tuần này — đây là bài luyện tổng hợp cuối tuần." },
   intro:"Buổi chiều dài hơn (~2.5-3h): làm lại mọi đáp án sai trong tuần và ghi vào Error Log, sau đó làm bài test trộn 12 câu dưới đây — tất cả các thì đã học trong tuần, mỗi câu có giải thích chi tiết ngay khi bạn xem đáp án.",
   grammar:[], contrast:[], mistakes:[],
   blanks:[
@@ -572,7 +579,7 @@ var DAYS = [
 },
 {
   key:"sun", code:"CN", label:"Chủ Nhật", topic:"Củng cố từ vựng + Viết", weekday:0, type:"consolidate",
-  reading:{ links:[READING.tedEd], hint:"Xem 1 video ngắn TED-Ed, ghi lại 3-5 từ/cụm từ mới nghe được vào Error Log hoặc sổ riêng." },
+  reading:{ links:[READING.finMoneyHappiness], hint:"Đọc bài Money and Happiness — lấy ý và từ vựng cho bài luận cuối tuần, ghi từ mới vào Error Log." },
   intro:"Ôn lại toàn bộ 40 từ vựng của tuần (gộp từ Thứ 2 → Thứ 6) — bấm vào từng mục để xem đầy đủ: phát âm, loại từ, cấu trúc, từ đồng nghĩa/trái nghĩa, ví dụ nói và viết. Đánh dấu 'Đã thuộc' cho từ bạn chắc chắn nhớ. Sau đó viết đoạn văn theo đề bên dưới, và cuối cùng mở Error Log để xem lại toàn bộ lỗi trong tuần.",
   grammar:[], contrast:[], mistakes:[],
   blanks:[], corr:[], vocab:[],
@@ -697,6 +704,13 @@ function renderMain(){
     d.grammar.forEach(function(g){
       var card = el("div","grammar-card");
       card.appendChild(el("div","gname",g.name));
+      if(g.structure){
+        var st = el("div","struct-table",
+          '<div class="struct-row"><span class="s-lbl">Khẳng định</span><span class="s-val">'+g.structure.aff+'</span></div>'+
+          '<div class="struct-row"><span class="s-lbl">Phủ định</span><span class="s-val">'+g.structure.neg+'</span></div>'+
+          '<div class="struct-row"><span class="s-lbl">Nghi vấn</span><span class="s-val">'+g.structure.q+'</span></div>');
+        card.appendChild(st);
+      }
       g.uses.forEach(function(u){
         var ui = el("div","use-item");
         ui.appendChild(el("div","u-title",u.title));
