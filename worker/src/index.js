@@ -82,6 +82,64 @@ async function handleChat(request, env, origin) {
   return json({ reply }, 200, origin);
 }
 
+const SYSTEM_PROMPT_GRADE = `You are an English writing tutor for a Vietnamese adult learner (B1-B2) practicing writing.
+
+Rules:
+- Respond in Vietnamese, except when quoting the learner's own English sentences.
+- Be concrete and specific — quote the learner's exact words, never generic praise.
+- Structure the reply in exactly this order, each section starting on its own line:
+  "Ngữ pháp & thì:" — list concrete grammar/tense mistakes as "sai → đúng", with a one-line reason each. If none, say so briefly.
+  "Tự nhiên hay dịch?:" — quote every sentence that reads like a word-by-word translation from Vietnamese and rewrite it naturally. If none, say so briefly.
+  "Nâng cấp:" — give exactly 2 more advanced/natural ways to express something from the essay.
+- Keep the whole reply under 220 words. No preamble, no closing remarks, no markdown headers/asterisks.`;
+
+async function handleGrade(request, env, origin) {
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "invalid_json" }, 400, origin);
+  }
+
+  const task = String(body.task || "").slice(0, 500);
+  const essay = String(body.essay || "").slice(0, 4000);
+
+  if (!essay.trim()) {
+    return json({ error: "empty_essay" }, 400, origin);
+  }
+
+  const userMsg = `Đề bài: ${task}\n\nBài viết của học viên:\n${essay}`;
+
+  const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      system: SYSTEM_PROMPT_GRADE,
+      messages: [{ role: "user", content: userMsg }],
+    }),
+  });
+
+  if (!anthropicRes.ok) {
+    const errText = await anthropicRes.text();
+    return json({ error: "upstream_error", detail: errText.slice(0, 300) }, 502, origin);
+  }
+
+  const data = await anthropicRes.json();
+  const reply = (data.content || [])
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("\n")
+    .trim();
+
+  return json({ reply }, 200, origin);
+}
+
 function json(obj, status, origin) {
   return new Response(JSON.stringify(obj), {
     status,
@@ -100,6 +158,10 @@ export default {
 
     if (url.pathname === "/chat" && request.method === "POST") {
       return handleChat(request, env, origin);
+    }
+
+    if (url.pathname === "/grade" && request.method === "POST") {
+      return handleGrade(request, env, origin);
     }
 
     if (url.pathname === "/health") {

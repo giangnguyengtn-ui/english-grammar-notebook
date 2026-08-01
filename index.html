@@ -315,6 +315,7 @@
       <textarea id="ef-why" placeholder="Vì sao sai (quy tắc nào)"></textarea>
       <button class="btn small" id="ef-add" style="align-self:flex-start;">Thêm vào log</button>
     </div>
+    <div id="errlogQuiz" style="margin-bottom:18px"></div>
     <div class="errlog-entries" id="errlogEntries"></div>
   </div>
 </div>
@@ -728,6 +729,27 @@ var FLUENCY_QUESTIONS = [
   "Describe your relationship with risk — are you cautious or adventurous with money?"
 ];
 
+/* Short, English-only prompts for the 60s non-stop Free-Talk drill — no
+   Vietnamese anywhere near them, so there's nothing to translate from. */
+var FREETALK_TOPICS = [
+  "Your favorite way to relax after work.",
+  "A skill you wish you had.",
+  "The last thing you bought online.",
+  "Your morning routine.",
+  "A place you'd love to visit.",
+  "Something that annoys you at work.",
+  "Your opinion on working from home.",
+  "A goal you're working on right now.",
+  "The best advice someone gave you about money.",
+  "A mistake you learned a lot from.",
+  "Your favorite way to spend money.",
+  "Something you're grateful for this week.",
+  "A habit you're trying to build.",
+  "Your opinion on investing in stocks.",
+  "A recent change in your life.",
+  "What makes a good coworker."
+];
+
 /* ---------------- listening (TTS) & speaking (speech recognition) ---------------- */
 
 function speak(text, rate){
@@ -753,23 +775,53 @@ function scoreOverlap(target, said){
   return Math.round(100*match/t.length);
 }
 
-function startRecording(onInterim, onFinal, onError){
+function computeWPM(text, elapsedMs){
+  var words = (text||"").trim().match(/\S+/g);
+  var n = words ? words.length : 0;
+  var minutes = elapsedMs / 60000;
+  return minutes > 0 ? Math.round(n / minutes) : 0;
+}
+function countFillers(text){
+  var m = (text||"").match(/\b(um+|uh+|erm+|hmm+)\b/gi);
+  return m ? m.length : 0;
+}
+
+/* opts.continuous:true keeps listening across silence (auto-restarts the
+   underlying recognizer on each natural onend) so pauseCount/WPM reflect a
+   whole multi-sentence answer instead of stopping at the first pause. */
+function startRecording(onInterim, onFinal, onError, opts){
   if(!SpeechRec) { if(onError) onError("unsupported"); return null; }
+  opts = opts || {};
   var rec = new SpeechRec();
-  rec.lang = "en-US"; rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = false;
+  rec.lang = "en-US"; rec.interimResults = true; rec.maxAlternatives = 1;
+  rec.continuous = !!opts.continuous;
   var finalText = "";
+  var startedAt = Date.now();
+  var lastSpeechAt = startedAt;
+  var pauseCount = 0;
+  var stopped = false;
+  function metrics(){ return { pauses:pauseCount, elapsedMs:Date.now()-startedAt }; }
   rec.onresult = function(e){
+    var now = Date.now();
+    if(finalText.trim().length>0 && (now-lastSpeechAt)>2000) pauseCount++;
+    lastSpeechAt = now;
     var interim = "";
     for(var i=e.resultIndex; i<e.results.length; i++){
       var tr = e.results[i][0].transcript;
       if(e.results[i].isFinal) finalText += tr; else interim += tr;
     }
-    onInterim(finalText + interim);
+    onInterim(finalText + interim, metrics());
   };
-  rec.onerror = function(e){ if(onError) onError(e.error); };
-  rec.onend = function(){ onFinal(finalText.trim()); };
+  rec.onerror = function(e){
+    if(opts.continuous && !stopped && (e.error==="no-speech" || e.error==="aborted")) return;
+    if(onError) onError(e.error);
+  };
+  rec.onend = function(){
+    if(opts.continuous && !stopped){ try{ rec.start(); return; }catch(err){} }
+    onFinal(finalText.trim(), metrics());
+  };
   try{ rec.start(); }catch(e){ if(onError) onError("start-failed"); return null; }
-  return rec;
+  return { stop:function(){ stopped = true; try{ rec.stop(); }catch(e){} }, metrics:metrics };
 }
 
 var AI_WORKER_URL = "https://english-speaking.giang-nguyen-gtn.workers.dev/chat";
@@ -785,7 +837,12 @@ state.writeCheck = state.writeCheck || {};
 state.shadow = state.shadow || {};
 state.vocabQuiz = state.vocabQuiz || {};
 state.fluency = state.fluency || [];
+state.freetalk = state.freetalk || [];
+state.chunkDrill = state.chunkDrill || {attempts:0, hits:0};
 state.roadmapOpen = !!state.roadmapOpen;
+
+var freeTalkState = { topic:null, transcript:"", rec:null, timerId:null, countdownId:null, lastResult:null };
+var chunkDrillState = { dayKey:null, chunk:null, prompt:null };
 
 /* ---------------- vocab active-recall + spaced repetition ---------------- */
 
@@ -898,7 +955,7 @@ function renderVocabQuiz(container, questions, quizKey, opts){
         var se=document.getElementById(quizKey+"-score"); if(se) se.textContent = correctCount;
         srsRecord(q.key, ok);
         if(!ok && input.value.trim()){
-          state.errlog.push({ wrong:"'"+input.value.trim()+"' cho '"+q.term+"'", right:q.answer[0], why:"Nghĩa: "+q.meaning });
+          state.errlog.push({ id:newId(), wrong:"'"+input.value.trim()+"' cho '"+q.term+"'", right:q.answer[0], why:"Nghĩa: "+q.meaning });
           save();
         }
         if(opts.scoreKey){ state.vocabQuiz[opts.scoreKey] = {correct:correctCount, total:questions.length, answered:answeredCount, at:Date.now()}; save(); renderRail(); }
@@ -921,6 +978,7 @@ function load(){
 }
 function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
 
+function newId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 function normalize(s){ return (s||"").toLowerCase().trim().replace(/\s+/g," ").replace(/[.!]+$/,""); }
 function isCorrect(val, answers){
   var n = normalize(val);
@@ -1421,6 +1479,10 @@ function renderMain(){
       chunkGrid.appendChild(card);
     });
     chSec.appendChild(chunkGrid);
+    var chDrillWrap = el("div",null);
+    chDrillWrap.style.marginTop = "16px"; chDrillWrap.style.paddingTop = "16px"; chDrillWrap.style.borderTop = "1px dashed var(--line)";
+    chSec.appendChild(chDrillWrap);
+    renderChunkDrill(chDrillWrap, d);
     main.appendChild(chSec);
   }
 
@@ -1510,7 +1572,8 @@ function renderMain(){
         });
         qWrap.appendChild(copyDeBtn);
 
-        function buildRound(roundLabel, textKey, pauseKey, placeholder){
+        function buildRound(roundLabel, textKey, pauseKey, placeholder, opts){
+          opts = opts || {};
           var roundBox = el("div","speaking-round");
           roundBox.appendChild(el("div","wr-sub",roundLabel));
           var ctr = el("div","dict-controls");
@@ -1519,38 +1582,73 @@ function renderMain(){
           ta2.style.minHeight = "50px"; ta2.style.marginTop = "6px";
           ta2.value = state.speaking[textKey] || "";
           ta2.addEventListener("input", function(){ state.speaking[textKey]=ta2.value; save(); });
+          var wpmKey = pauseKey+"-wpm";
+          var pauseInput = document.createElement("input");
+          pauseInput.type = "number"; pauseInput.min = "0"; pauseInput.style.width = "56px";
+          pauseInput.value = state.speaking[pauseKey] || "";
+          var statPill = el("span","score-pill","");
+          statPill.style.display = state.speaking[wpmKey] ? "inline-flex" : "none";
+          if(state.speaking[wpmKey]) statPill.innerHTML = "🗣 <b>"+state.speaking[wpmKey]+"</b> từ/phút (tự động)";
           if(SpeechRec){
             var recBtn2 = el("button","btn small","🎤 Ghi âm");
             var active2 = null;
+            function reallyStart(){
+              recBtn2.textContent = "⏹ Đang nghe...";
+              active2 = startRecording(function(interim){ ta2.value = interim; }, function(finalText, m){
+                recBtn2.textContent = "🎤 Ghi âm"; active2 = null;
+                if(finalText){
+                  ta2.value = finalText; state.speaking[textKey] = finalText;
+                  state.speaking[pauseKey] = m.pauses; pauseInput.value = m.pauses;
+                  state.speaking[wpmKey] = computeWPM(finalText, m.elapsedMs);
+                  statPill.style.display = "inline-flex";
+                  statPill.innerHTML = "🗣 <b>"+state.speaking[wpmKey]+"</b> từ/phút (tự động)";
+                  save();
+                }
+              }, function(){ recBtn2.textContent = "🎤 Ghi âm"; active2 = null; }, {continuous:true});
+            }
             recBtn2.addEventListener("click", function(){
               if(active2){ active2.stop(); return; }
-              recBtn2.textContent = "⏹ Đang nghe...";
-              active2 = startRecording(function(interim){ ta2.value = interim; }, function(finalText){
-                recBtn2.textContent = "🎤 Ghi âm"; active2 = null;
-                if(finalText){ ta2.value = finalText; state.speaking[textKey]=finalText; save(); }
-              }, function(){ recBtn2.textContent = "🎤 Ghi âm"; active2 = null; });
+              if(!opts.countdown){ reallyStart(); return; }
+              var n = 3;
+              recBtn2.disabled = true;
+              recBtn2.textContent = "Nói ngay sau... " + n;
+              var iv = setInterval(function(){
+                n--;
+                if(n<=0){ clearInterval(iv); recBtn2.disabled = false; reallyStart(); }
+                else recBtn2.textContent = "Nói ngay sau... " + n;
+              }, 700);
             });
             ctr.appendChild(recBtn2);
           }
           var pauseLabel = document.createElement("label");
           pauseLabel.className = "pause-count-label";
-          pauseLabel.appendChild(document.createTextNode("Số lần dừng >2s: "));
-          var pauseInput = document.createElement("input");
-          pauseInput.type = "number"; pauseInput.min = "0"; pauseInput.style.width = "56px";
-          pauseInput.value = state.speaking[pauseKey] || "";
-          pauseInput.addEventListener("change", function(){ state.speaking[pauseKey]=pauseInput.value; save(); });
+          pauseLabel.appendChild(document.createTextNode("Số lần dừng >2s (tự đếm, có thể sửa): "));
+          pauseInput.addEventListener("change", function(){ state.speaking[pauseKey]=Number(pauseInput.value)||0; save(); });
           pauseLabel.appendChild(pauseInput);
           ctr.appendChild(pauseLabel);
+          ctr.appendChild(statPill);
           roundBox.appendChild(ctr);
+          if(opts.countdown) roundBox.appendChild(el("div","empty-note","Bấm ghi âm rồi nói ngay khi đếm về 0 — không có thời gian soạn câu trước, để tránh dịch trong đầu."));
           roundBox.appendChild(ta2);
           return roundBox;
         }
-        qWrap.appendChild(buildRound("Vòng 1 — nói tự do", qk, qk+"-p1", "Transcript vòng 1 sẽ hiện ở đây..."));
+        qWrap.appendChild(buildRound("Vòng 1 — nói tự do", qk, qk+"-p1", "Transcript vòng 1 sẽ hiện ở đây...", {countdown:true}));
         qWrap.appendChild(buildRound("Vòng 2 — nói lại, thay khoảng lặng bằng 1 chunk", qk+"-r2", qk+"-p2", "Transcript vòng 2 sẽ hiện ở đây..."));
         spkSec.appendChild(qWrap);
       });
     }
     main.appendChild(spkSec);
+  }
+
+  // Free-Talk 60s — non-stop speaking, English-only topic (no sentence to translate from)
+  {
+    var ftSec = el("section","block");
+    ftSec.appendChild(el("h2",null,'Nói tự do 60 giây — không dừng <span class="tag">chống dịch trong đầu</span>'));
+    ftSec.appendChild(el("div","intro",'Chủ đề chỉ có tiếng Anh, không có câu gốc để dịch. Nói liên tục tối đa 60 giây, không dừng quá 2 giây — sai gì cũng kệ, mục tiêu là giữ mạch nói chứ không phải nói đúng.'));
+    var ftBody = el("div",null);
+    ftSec.appendChild(ftBody);
+    renderFreeTalk(ftBody);
+    main.appendChild(ftSec);
   }
 
   // AI conversation — natural 1:1 speaking practice
@@ -1561,6 +1659,18 @@ function renderMain(){
     if(!SpeechRec){
       aiSec.appendChild(el("div","empty-note","Ghi âm cần Chrome/Edge. Bạn vẫn có thể gõ chữ để trò chuyện bên dưới."));
     }
+    var chatTopicOverride = null;
+    var topicLabel = el("div","empty-note","Chủ đề hiện tại: "+d.topic);
+    var surpriseBtn = el("button","btn ghost small","🎲 Chủ đề bất ngờ");
+    surpriseBtn.title = "Đổi sang chủ đề ngẫu nhiên, không báo trước — giống tinh thần Fluency Check";
+    var SURPRISE_TOPICS = FLUENCY_QUESTIONS.concat(FREETALK_TOPICS);
+    surpriseBtn.addEventListener("click", function(){
+      chatTopicOverride = SURPRISE_TOPICS[Math.floor(Math.random()*SURPRISE_TOPICS.length)];
+      topicLabel.textContent = "Chủ đề hiện tại: " + chatTopicOverride;
+    });
+    var topicRow = el("div","dict-controls"); topicRow.style.marginBottom = "6px";
+    topicRow.appendChild(topicLabel); topicRow.appendChild(surpriseBtn);
+    aiSec.appendChild(topicRow);
     var chatLog = el("div","chat-log");
     aiSec.appendChild(chatLog);
     var chatKey = d.key;
@@ -1576,7 +1686,31 @@ function renderMain(){
         var tipIdx = m.content.indexOf("💡");
         if(m.role==="assistant" && tipIdx>-1){ mainText = m.content.slice(0,tipIdx).trim(); tip = m.content.slice(tipIdx); }
         bubble.appendChild(el("div","chat-text",mainText));
-        if(tip) bubble.appendChild(el("div","chat-tip",tip));
+        if(tip){
+          bubble.appendChild(el("div","chat-tip",tip));
+          if(SpeechRec){
+            var corrected = tip.indexOf("→")>-1 ? tip.split("→").pop().replace(/[."]+$/,"").trim() : tip.replace("💡","").trim();
+            var repeatRow = el("div",null);
+            repeatRow.style.cssText = "margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap";
+            var repeatBtn = el("button","btn ghost small","🔁 Nói lại câu đúng");
+            var repeatResult = el("span","fb-icon","");
+            var activeRepeat = null;
+            repeatBtn.addEventListener("click", function(){
+              if(activeRepeat){ activeRepeat.stop(); return; }
+              repeatBtn.textContent = "⏹ Đang nghe...";
+              activeRepeat = startRecording(function(){}, function(finalText){
+                repeatBtn.textContent = "🔁 Nói lại câu đúng"; activeRepeat = null;
+                if(finalText){
+                  var sc = scoreOverlap(corrected, finalText);
+                  repeatResult.textContent = (sc>=70?"✓ ":"")+"khớp "+sc+"%";
+                  repeatResult.className = "fb-icon " + (sc>=70?"ok":"no");
+                }
+              }, function(){ repeatBtn.textContent = "🔁 Nói lại câu đúng"; activeRepeat = null; });
+            });
+            repeatRow.appendChild(repeatBtn); repeatRow.appendChild(repeatResult);
+            bubble.appendChild(repeatRow);
+          }
+        }
         if(m.role==="assistant"){
           var replayBtn = el("button","chat-replay","🔊");
           replayBtn.title = "Nghe lại";
@@ -1603,7 +1737,7 @@ function renderMain(){
           method:"POST",
           headers:{"content-type":"application/json"},
           body: JSON.stringify({
-            topic: d.topic + (d.speaking && d.speaking.length ? (" | " + d.speaking[0]) : ""),
+            topic: chatTopicOverride || (d.topic + (d.speaking && d.speaking.length ? (" | " + d.speaking[0]) : "")),
             history: state.chat[chatKey].slice(0,-1),
             message: text.trim()
           })
@@ -1708,13 +1842,44 @@ function renderMain(){
 
     var wActions = el("div","write-actions");
     var checkBtn = el("button","btn small","Chấm bài (tự động, offline)");
+    var aiGradeBtn = el("button","btn small","🤖 Chấm bằng AI (trong app)");
     var copyBtn = el("button","btn ghost small","Copy để nhờ AI chấm");
-    wActions.appendChild(checkBtn); wActions.appendChild(copyBtn);
+    wActions.appendChild(checkBtn); wActions.appendChild(aiGradeBtn); wActions.appendChild(copyBtn);
     wSec.appendChild(wActions);
 
     var reportBox = el("div","write-report");
     reportBox.style.display = "none";
     wSec.appendChild(reportBox);
+
+    var aiGradeBox = el("div","write-report");
+    aiGradeBox.style.display = "none";
+    wSec.appendChild(aiGradeBox);
+
+    aiGradeBtn.addEventListener("click", async function(){
+      if(!ta.value.trim()) return;
+      aiGradeBtn.disabled = true;
+      var prevText = aiGradeBtn.textContent;
+      aiGradeBtn.textContent = "Đang chấm...";
+      aiGradeBox.style.display = "block";
+      aiGradeBox.innerHTML = '<div class="wr-title">AI đang chấm bài (khoảng 5-10 giây)...</div>';
+      try{
+        var res = await fetch(AI_WORKER_URL.replace(/\/chat$/,"/grade"), {
+          method:"POST",
+          headers:{"content-type":"application/json"},
+          body: JSON.stringify({ task: d.writing.replace(/<[^>]+>/g,""), essay: ta.value })
+        });
+        var data = await res.json();
+        if(!res.ok || !data.reply){
+          aiGradeBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">' +
+            (data.error==="upstream_error" ? "backend/API key có thể chưa cấu hình xong" : (data.error || "không kết nối được")) + '</div>';
+        } else {
+          aiGradeBox.innerHTML = '<div class="wr-title">Kết quả chấm bằng AI</div><div class="wr-line" style="white-space:pre-wrap">' + data.reply.replace(/</g,"&lt;") + '</div>';
+        }
+      }catch(e){
+        aiGradeBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">Không kết nối được tới backend — kiểm tra lại kết nối mạng.</div>';
+      }
+      aiGradeBtn.disabled = false; aiGradeBtn.textContent = prevText;
+    });
 
     checkBtn.addEventListener("click", function(){
       var vocabForCheck = isConsolidate ? vocabSource : d.vocab;
@@ -1813,13 +1978,218 @@ function renderErrLog(){
       (en.why ? '<div class="why">'+en.why+'</div>' : ''));
     e.querySelector(".del").addEventListener("click", function(){
       var idx = state.errlog.indexOf(en);
-      if(idx>-1){ state.errlog.splice(idx,1); save(); renderErrLog(); renderRail(); }
+      if(idx>-1){ state.errlog.splice(idx,1); save(); renderErrLog(); renderErrlogQuiz(); renderRail(); }
     });
     wrap.appendChild(e);
   });
 }
-function openErrLog(){ document.getElementById("errlogOverlay").classList.add("open"); renderErrLog(); }
+
+/* active-recall / spaced-repetition quiz over the learner's own logged mistakes,
+   reusing the same SRS box system already built for vocab (srsIsDue/srsRecord). */
+function renderErrlogQuiz(){
+  var box = document.getElementById("errlogQuiz");
+  if(!box) return;
+  box.innerHTML = "";
+  var needsSave = false;
+  state.errlog.forEach(function(en){ if(!en.id){ en.id = newId(); needsSave = true; } });
+  if(needsSave) save();
+  if(state.errlog.length===0) return;
+  var due = state.errlog.filter(function(en){ return srsIsDue("errlog-"+en.id); });
+  box.appendChild(el("div","wr-sub","Ôn tập chủ động (Spaced Repetition) — "+due.length+" mục đến hạn / "+state.errlog.length+" tổng"));
+  if(due.length===0){
+    box.appendChild(el("div","empty-note","Chưa có mục nào đến hạn ôn — quay lại sau."));
+    return;
+  }
+  var quizArea = el("div",null);
+  var startBtn = el("button","btn small","Ôn "+Math.min(10,due.length)+" mục đến hạn");
+  startBtn.addEventListener("click", function(){
+    var qs = due.slice();
+    for(var i=qs.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=qs[i]; qs[i]=qs[j]; qs[j]=t; }
+    runErrlogQuiz(quizArea, qs.slice(0,10));
+  });
+  box.appendChild(startBtn);
+  box.appendChild(quizArea);
+}
+
+function runErrlogQuiz(container, items){
+  container.innerHTML = "";
+  var scoreEl = el("div","score-pill","Đúng <b id='eq-score'>0</b> / "+items.length);
+  scoreEl.style.marginTop = "8px";
+  container.appendChild(scoreEl);
+  var correctCount = 0;
+  items.forEach(function(en, i){
+    var wrap = el("div","ex");
+    wrap.appendChild(el("div",null,'<span class="qn">'+(i+1)+'.</span><span class="prompt">Sửa câu sai: <i>"'+en.wrong+'"</i></span>'));
+    var row = el("div","blank-row");
+    var input = document.createElement("input");
+    input.type = "text"; input.placeholder = "Viết lại câu đúng...";
+    input.style.minWidth = "200px"; input.style.flex = "1";
+    var icon = el("span","fb-icon");
+    var revealEl = el("div","reveal-text","<b>Đáp án:</b> "+en.right+(en.why ? "<br><b>Vì sao:</b> "+en.why : ""));
+    var checked = false;
+    var checkBtn = el("button","btn small","Kiểm tra");
+    checkBtn.addEventListener("click", function(){
+      var sc = scoreOverlap(en.right, input.value);
+      var ok = sc >= 70;
+      icon.textContent = (ok?"✓ ":"") + sc + "%";
+      icon.className = "fb-icon " + (ok?"ok":"no");
+      input.className = ok ? "correct" : "wrong";
+      if(!checked){
+        checked = true; if(ok) correctCount++;
+        var se = document.getElementById("eq-score"); if(se) se.textContent = correctCount;
+        srsRecord("errlog-"+en.id, ok);
+      }
+      revealEl.classList.add("show");
+    });
+    input.addEventListener("keydown", function(e){ if(e.key==="Enter") checkBtn.click(); });
+    row.appendChild(input); row.appendChild(checkBtn); row.appendChild(icon);
+    wrap.appendChild(row); wrap.appendChild(revealEl);
+    container.appendChild(wrap);
+  });
+}
+
+function openErrLog(){ document.getElementById("errlogOverlay").classList.add("open"); renderErrLog(); renderErrlogQuiz(); }
 function closeErrLog(){ document.getElementById("errlogOverlay").classList.remove("open"); }
+
+/* ---------------- Free-Talk 60s (non-stop speaking, no prep) ---------------- */
+
+function renderFreeTalkHistory(container){
+  var recent = state.freetalk.slice(-5).reverse();
+  if(!recent.length) return;
+  container.appendChild(el("div","wr-sub","5 lần gần nhất"));
+  var box = el("div","review-list");
+  recent.forEach(function(f){
+    box.appendChild(el("div","item",
+      '<span>'+new Date(f.at).toLocaleDateString("vi-VN")+'</span>'+
+      '<span>🗣 <b>'+f.wpm+'</b> từ/phút · ⏸ <b>'+f.pauses+'</b> lần dừng · '+f.words+' từ</span>'));
+  });
+  container.appendChild(box);
+}
+
+function startFreeTalkRecording(goBtn, timeLbl, container){
+  goBtn.textContent = "⏹ Dừng lại";
+  var remaining = 60;
+  timeLbl.textContent = remaining+"s";
+  freeTalkState.countdownId = setInterval(function(){
+    remaining--; timeLbl.textContent = Math.max(remaining,0)+"s";
+    if(remaining<=0){ clearInterval(freeTalkState.countdownId); if(freeTalkState.rec) freeTalkState.rec.stop(); }
+  }, 1000);
+  freeTalkState.rec = startRecording(function(interim){ freeTalkState.transcript = interim; }, function(finalText, m){
+    clearInterval(freeTalkState.countdownId);
+    freeTalkState.rec = null;
+    var words = (finalText.trim().match(/\S+/g)||[]).length;
+    var wpm = computeWPM(finalText, m.elapsedMs);
+    freeTalkState.transcript = finalText;
+    freeTalkState.lastResult = { wpm:wpm, pauses:m.pauses, words:words };
+    state.freetalk.push({ at:Date.now(), topic:freeTalkState.topic, wpm:wpm, pauses:m.pauses, words:words });
+    if(state.freetalk.length>50) state.freetalk = state.freetalk.slice(-50);
+    save();
+    renderFreeTalk(container);
+  }, function(){
+    clearInterval(freeTalkState.countdownId);
+    freeTalkState.rec = null;
+    renderFreeTalk(container);
+  }, {continuous:true});
+  freeTalkState.timerId = setTimeout(function(){ if(freeTalkState.rec) freeTalkState.rec.stop(); }, 60000);
+}
+
+function renderFreeTalk(container){
+  container.innerHTML = "";
+  var pickBtn = el("button","btn small","🎲 Chọn chủ đề ngẫu nhiên");
+  pickBtn.addEventListener("click", function(){
+    freeTalkState.topic = FREETALK_TOPICS[Math.floor(Math.random()*FREETALK_TOPICS.length)];
+    freeTalkState.transcript = ""; freeTalkState.lastResult = null;
+    renderFreeTalk(container);
+  });
+  if(!freeTalkState.topic){
+    container.appendChild(pickBtn);
+    renderFreeTalkHistory(container);
+    return;
+  }
+  container.appendChild(el("div","prompt-box","<b>Chủ đề</b>"+freeTalkState.topic));
+  var ctr = el("div","dict-controls");
+  var timeLbl = el("span","score-pill","60s");
+  if(SpeechRec){
+    var goBtn = el("button","btn small","🎤 Bắt đầu (đếm ngược 3s rồi nói 60s)");
+    goBtn.addEventListener("click", function(){
+      if(freeTalkState.rec){ freeTalkState.rec.stop(); return; }
+      var n = 3;
+      goBtn.disabled = true;
+      goBtn.textContent = "Nói ngay sau... " + n;
+      var iv = setInterval(function(){
+        n--;
+        if(n<=0){ clearInterval(iv); goBtn.disabled = false; startFreeTalkRecording(goBtn, timeLbl, container); }
+        else goBtn.textContent = "Nói ngay sau... " + n;
+      }, 700);
+    });
+    ctr.appendChild(goBtn);
+  } else {
+    container.appendChild(el("div","empty-note","Cần Chrome/Edge để ghi âm và tính chỉ số tự động."));
+  }
+  ctr.appendChild(timeLbl);
+  var newTopicBtn = el("button","btn ghost small","Đổi chủ đề khác");
+  newTopicBtn.addEventListener("click", function(){ freeTalkState.topic = null; renderFreeTalk(container); });
+  ctr.appendChild(newTopicBtn);
+  container.appendChild(ctr);
+  if(freeTalkState.lastResult){
+    var r = freeTalkState.lastResult;
+    container.appendChild(el("div","score-pill","🗣 "+r.wpm+" từ/phút · ⏸ "+r.pauses+" lần dừng >2s · "+r.words+" từ"));
+  }
+  renderFreeTalkHistory(container);
+}
+
+/* ---------------- forced chunk-usage drill ---------------- */
+
+function renderChunkDrill(container, d){
+  if(chunkDrillState.dayKey !== d.key){ chunkDrillState.dayKey = d.key; chunkDrillState.chunk = null; chunkDrillState.prompt = null; }
+  container.innerHTML = "";
+  var stats = state.chunkDrill;
+  container.appendChild(el("div","wr-sub","Luyện phản xạ dùng chunk"+(stats.attempts?(" · đã thử "+stats.attempts+" lần, dùng đúng "+stats.hits+" lần"):"")));
+  var promptPool = (d.speaking && d.speaking.length) ? d.speaking : FLUENCY_QUESTIONS;
+  var startBtn = el("button","btn small","🎲 Bắt đầu (chunk + câu hỏi ngẫu nhiên)");
+  startBtn.addEventListener("click", function(){
+    chunkDrillState.chunk = d.chunks[Math.floor(Math.random()*d.chunks.length)];
+    chunkDrillState.prompt = promptPool[Math.floor(Math.random()*promptPool.length)];
+    renderChunkDrill(container, d);
+  });
+  if(!chunkDrillState.chunk){ container.appendChild(startBtn); return; }
+  container.appendChild(el("div","prompt-box","<b>Câu hỏi</b>"+chunkDrillState.prompt));
+  container.appendChild(el("div",null,'Bắt buộc dùng chunk này trong câu trả lời: <span class="pattern-box">'+chunkDrillState.chunk.t+'</span>'));
+  var ctr = el("div","dict-controls"); ctr.style.marginTop = "8px";
+  var result = el("span","score-pill",""); result.style.display = "none";
+  if(SpeechRec){
+    var recBtn = el("button","btn small","🎤 Trả lời (đếm ngược 3s)");
+    var active = null;
+    recBtn.addEventListener("click", function(){
+      if(active){ active.stop(); return; }
+      var n = 3; recBtn.disabled = true; recBtn.textContent = "Nói ngay sau... " + n;
+      var iv = setInterval(function(){
+        n--;
+        if(n<=0){
+          clearInterval(iv); recBtn.disabled = false; recBtn.textContent = "⏹ Đang nghe...";
+          active = startRecording(function(){}, function(finalText){
+            recBtn.textContent = "🎤 Trả lời (đếm ngược 3s)"; active = null;
+            if(finalText){
+              var used = finalText.toLowerCase().indexOf(chunkDrillState.chunk.t.toLowerCase()) > -1;
+              stats.attempts++; if(used) stats.hits++;
+              save();
+              result.style.display = "inline-flex";
+              result.innerHTML = (used ? "✓ Đã dùng chunk" : "✗ Chưa nghe thấy chunk") + ' — bạn nói: "' + finalText + '"';
+            }
+          }, function(){ recBtn.textContent = "🎤 Trả lời (đếm ngược 3s)"; active = null; });
+        } else recBtn.textContent = "Nói ngay sau... " + n;
+      }, 700);
+    });
+    ctr.appendChild(recBtn);
+  } else {
+    container.appendChild(el("div","empty-note","Cần Chrome/Edge để tự động kiểm tra chunk trong câu trả lời."));
+  }
+  var nextBtn = el("button","btn ghost small","Chunk khác");
+  nextBtn.addEventListener("click", function(){ chunkDrillState.chunk = null; renderChunkDrill(container, d); });
+  ctr.appendChild(nextBtn);
+  ctr.appendChild(result);
+  container.appendChild(ctr);
+}
 
 /* ---------------- E2: Fluency Check ---------------- */
 
@@ -1831,7 +2201,7 @@ function renderFluencyHistory(){
   var rows = state.fluency.slice().reverse().map(function(f){
     return '<div class="review-list"><div class="item">'+
       '<span>'+new Date(f.at).toLocaleDateString("vi-VN")+'</span>'+
-      '<span>Dừng >2s: <b>'+f.pauses+'</b> · Dịch trong đầu: <b>'+f.translating+'</b> · Chunks: <b>'+f.chunksUsed+'</b></span>'+
+      '<span>'+(f.wpm?('🗣 <b>'+f.wpm+'</b> từ/phút · '):'')+'Dừng >2s: <b>'+f.pauses+'</b> · Dịch trong đầu: <b>'+f.translating+'</b> · Chunks: <b>'+f.chunksUsed+'</b></span>'+
       '</div></div>';
   }).join("");
   box.innerHTML = rows;
@@ -1857,16 +2227,29 @@ function renderFluencyBody(){
   ta.value = fluencyState.transcript;
   ta.addEventListener("input", function(){ fluencyState.transcript = ta.value; });
   var ctr = el("div","dict-controls");
+  var statPill = el("span","score-pill","");
+  statPill.style.display = "none";
   if(SpeechRec){
     var recBtn = el("button","btn small","🎤 Bắt đầu ghi âm (tối đa 3 phút)");
     recBtn.addEventListener("click", function(){
       if(fluencyState.rec){ fluencyState.rec.stop(); return; }
       recBtn.textContent = "⏹ Đang ghi (tối đa 3:00)...";
-      fluencyState.rec = startRecording(function(interim){ ta.value = interim; fluencyState.transcript = interim; }, function(finalText){
+      fluencyState.rec = startRecording(function(interim){ ta.value = interim; fluencyState.transcript = interim; }, function(finalText, m){
         fluencyState.rec = null; recBtn.textContent = "🎤 Bắt đầu ghi âm (tối đa 3 phút)";
         clearTimeout(fluencyState.timerId);
-        if(finalText){ ta.value = finalText; fluencyState.transcript = finalText; }
-      }, function(){ fluencyState.rec = null; recBtn.textContent = "🎤 Bắt đầu ghi âm (tối đa 3 phút)"; clearTimeout(fluencyState.timerId); });
+        if(finalText){
+          ta.value = finalText; fluencyState.transcript = finalText;
+          pausesInp.value = m.pauses;
+          var wpm = computeWPM(finalText, m.elapsedMs);
+          statPill.style.display = "inline-flex";
+          statPill.innerHTML = "🗣 <b>"+wpm+"</b> từ/phút · ⏸ tự đếm <b>"+m.pauses+"</b> lần dừng &gt;2s";
+          statPill.dataset.wpm = wpm;
+          var dChunks = currentDay().chunks || [];
+          var lower = finalText.toLowerCase();
+          var hits = dChunks.filter(function(c){ return lower.indexOf(c.t.toLowerCase())>-1; }).length;
+          chunksInp.value = hits;
+        }
+      }, function(){ fluencyState.rec = null; recBtn.textContent = "🎤 Bắt đầu ghi âm (tối đa 3 phút)"; clearTimeout(fluencyState.timerId); }, {continuous:true});
       fluencyState.timerId = setTimeout(function(){ if(fluencyState.rec) fluencyState.rec.stop(); }, 180000);
     });
     ctr.appendChild(recBtn);
@@ -1874,10 +2257,11 @@ function renderFluencyBody(){
   var newQBtn = el("button","btn ghost small","Đổi câu hỏi khác");
   newQBtn.addEventListener("click", function(){ fluencyState.question = null; renderFluencyBody(); });
   ctr.appendChild(newQBtn);
+  ctr.appendChild(statPill);
   body.appendChild(ctr);
   body.appendChild(ta);
 
-  body.appendChild(el("div","wr-sub","Sau khi nói xong — nghe lại transcript và tự đếm"));
+  body.appendChild(el("div","wr-sub","Số lần dừng &amp; chunks đã tự động điền từ bản ghi — chỉnh lại nếu thấy sai. Mục dịch trong đầu vẫn cần tự đánh giá."));
   var metricsRow = el("div","dict-controls");
   function numField(labelText, id){
     var lbl = document.createElement("label"); lbl.className = "pause-count-label";
@@ -1897,7 +2281,8 @@ function renderFluencyBody(){
   saveBtn.addEventListener("click", function(){
     state.fluency.push({
       at: Date.now(), question: fluencyState.question, transcript: fluencyState.transcript,
-      pauses: Number(pausesInp.value)||0, translating: Number(translatingInp.value)||0, chunksUsed: Number(chunksInp.value)||0
+      pauses: Number(pausesInp.value)||0, translating: Number(translatingInp.value)||0, chunksUsed: Number(chunksInp.value)||0,
+      wpm: Number(statPill.dataset.wpm)||0
     });
     save();
     fluencyState.question = null; fluencyState.transcript = "";
@@ -1921,7 +2306,7 @@ document.getElementById("ef-add").addEventListener("click", function(){
   var r = document.getElementById("ef-right").value.trim();
   var y = document.getElementById("ef-why").value.trim();
   if(!w || !r) return;
-  state.errlog.push({wrong:w, right:r, why:y});
+  state.errlog.push({id:newId(), wrong:w, right:r, why:y});
   save();
   document.getElementById("ef-wrong").value=""; document.getElementById("ef-right").value=""; document.getElementById("ef-why").value="";
   renderErrLog(); renderRail();
