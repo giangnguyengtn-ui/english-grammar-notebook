@@ -173,6 +173,8 @@
   .vocab-head .pos-badge{ font-family:var(--mono); font-size:0.65rem; text-transform:uppercase; letter-spacing:0.04em; background:var(--accent-tint); color:var(--accent-strong); padding:2px 7px; border-radius:4px; }
   .vocab-head .reg-badge{ font-family:var(--mono); font-size:0.65rem; color:var(--gold); background:var(--gold-tint); padding:2px 7px; border-radius:4px; }
   .vocab-head .mastered-check{ color:var(--good); font-size:0.9rem; margin-left:auto; flex-shrink:0; }
+  .vocab-play{ background:none; border:1px solid var(--line); border-radius:6px; padding:2px 7px; font-size:0.85rem; flex-shrink:0; color:var(--ink-soft); }
+  .vocab-play:hover{ border-color:var(--accent); color:var(--accent-strong); }
   .vocab-head .chevron{ margin-left:auto; color:var(--ink-faint); font-size:0.8rem; flex-shrink:0; transition:transform .2s ease; }
   .vocab-item.open .chevron{ transform:rotate(180deg); }
   .vocab-item.open .mastered-check{ margin-left:8px; }
@@ -195,6 +197,21 @@
   textarea:focus-visible{ outline:2px solid var(--accent); outline-offset:0; }
   .write-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-family:var(--mono); font-size:0.75rem; color:var(--ink-faint); }
   .write-foot label{ display:flex; align-items:center; gap:6px; color:var(--ink-soft); cursor:pointer; }
+  .write-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .write-report{ margin-top:14px; padding:14px 16px; background:var(--paper); border:1px solid var(--line); border-radius:9px; }
+  .write-report .wr-title{ font-family:var(--serif); font-size:0.94rem; font-weight:600; color:var(--accent-strong); margin-bottom:8px; }
+  .write-report .wr-line{ font-size:0.86rem; color:var(--ink-soft); margin-bottom:10px; }
+  .write-report .wr-sub{ font-family:var(--mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-faint); margin:12px 0 6px; }
+  .check-grid{ display:flex; flex-wrap:wrap; gap:6px; }
+  .check-item{ font-size:0.8rem; border-radius:12px; padding:3px 10px; background:var(--paper-raised); color:var(--ink-faint); border:1px solid var(--line); }
+  .check-item.ok{ color:var(--good); border-color:var(--good); background:var(--good-tint); }
+  .check-item.no{ color:var(--ink-faint); }
+  .warn-item{ border-left:3px solid var(--bad); background:var(--bad-tint); border-radius:0 7px 7px 0; padding:8px 11px; margin-bottom:8px; }
+  .warn-item .w-snip{ font-size:0.85rem; color:var(--ink); font-style:italic; }
+  .warn-item .w-tip{ font-size:0.8rem; color:var(--bad); margin-top:3px; }
+  .dict-controls{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px; }
+  .shadow-row{ display:flex; flex-direction:column; gap:6px; }
+  .shadow-row .prompt{ font-style:italic; }
   .prompt-box{ background:var(--gold-tint); color:var(--gold); border-radius:8px; padding:12px 14px; font-size:0.9rem; margin-bottom:12px; line-height:1.5; }
   .prompt-box b{ display:block; margin-bottom:2px; color:inherit; font-family:var(--serif); font-size:0.96rem; }
 
@@ -263,15 +280,15 @@
    ============================================================ */
 
 var READING = {
-  finMoneyWorries: {title:"BNE · Money Worries", url:"https://breakingnewsenglish.com/2409/240926-money-worries.html", desc:"Lo lắng tài chính cá nhân — bấm chọn 1 trong 7 mức đọc ngay trên trang"},
-  finSharePrices: {title:"BNE · Share Prices Tumble", url:"https://breakingnewsenglish.com/0703/070315-share_prices.html", desc:"Thị trường chứng khoán lao dốc — nhiều câu quá khứ đơn / hiện tại hoàn thành"},
-  finTechStocks: {title:"BNE · Tech Stocks Surge", url:"https://breakingnewsenglish.com/2010/201014-tech-stocks.html", desc:"Cổ phiếu công nghệ tăng mạnh — nhiều câu hiện tại hoàn thành (tiếp diễn)"},
-  finAramcoIPO: {title:"BNE · Saudi Aramco IPO", url:"https://breakingnewsenglish.com/1911/191111-saudi-aramco-ipo.html", desc:"Thương vụ IPO lớn nhất lịch sử — nhiều mốc thời gian, hợp Quá khứ hoàn thành"},
-  finCrowdfunding: {title:"BNE · Crowdfunding", url:"https://breakingnewsenglish.com/1806/180603-crowdfunding-2.html", desc:"Gọi vốn cộng đồng — nói về xu hướng & dự đoán tương lai của đầu tư"},
-  finCashHandout: {title:"BNE · Cash Handouts", url:"https://breakingnewsenglish.com/2111/211108-cash-handout.html", desc:"Chính sách phát tiền mặt — tốt để ôn trộn nhiều thì trong 1 bài"},
-  finIncomeInequality: {title:"BNE · Income Inequality", url:"https://breakingnewsenglish.com/1701/170118-income-inequality.html", desc:"Bất bình đẳng thu nhập — mở rộng vốn từ tài chính-xã hội"},
-  finMoneyHappiness: {title:"BNE · Money and Happiness", url:"https://breakingnewsenglish.com/1604/160411-money-happiness.html", desc:"Tiền bạc và hạnh phúc — hợp để lấy ý viết bài luận cuối tuần"},
-  investingHome: {title:"Investing.com — Tin tài chính trực tiếp", url:"https://www.investing.com/news/", desc:"Tin tài chính, chứng khoán, đầu tư cập nhật liên tục (văn bản gốc, không chia cấp độ)"}
+  finMoneyPersonalities: {title:"CNBC · 6 Money Personalities", url:"https://www.cnbc.com/2026/01/01/there-are-6-money-personalities-finding-out-yours-can-help-you-be-happier-and-richer.html", desc:"Bài báo thật về thói quen & tính cách tài chính — nhiều câu Present Simple"},
+  finStocksBounce: {title:"CNBC · Stocks Bounce Back From Fed Selloff", url:"https://www.cnbc.com/2026/07/29/stock-market-today-live-updates.html", desc:"Tường thuật thị trường một phiên cụ thể — nhiều Past Simple & Present Perfect"},
+  finCXMT: {title:"CNBC · CXMT's 466% Market Debut Surge", url:"https://www.cnbc.com/2026/07/27/cxmt-china-market-debut-chipmaker-ipo.html", desc:"Cổ phiếu tăng vọt sau IPO — nhiều Present Perfect / Present Perfect Continuous"},
+  finReformationIPO: {title:"CNBC · Reformation IPO Starts Trading on NYSE", url:"https://www.cnbc.com/2026/07/30/reformation-ipo-public-nyse-listing.html", desc:"Tường thuật ngày lên sàn — có bối cảnh trước đó, hợp Quá khứ hoàn thành"},
+  finOutlookNextWeek: {title:"CNBC · Stock Market Outlook for Aug 3-7, 2026", url:"https://www.cnbc.com/2026/07/31/stock-market-next-week-outlook-for-aug-3-7-2026.html", desc:"Dự báo & lịch sự kiện tuần tới — nhiều will/going to"},
+  finAnthropicIPO: {title:"CNBC · Anthropic Moves Closer to Mega-IPO", url:"https://www.cnbc.com/2026/07/15/anthropic-ipo-banks-investor-meetings.html", desc:"Chuẩn bị IPO — trộn nhiều thì, tốt để ôn tổng hợp"},
+  finTimeOnMoney: {title:"CNBC · People Spend 13 Hours a Week on Finances", url:"https://www.cnbc.com/2026/06/30/how-to-spend-less-time-thinking-about-money-according-to-experts.html", desc:"Thói quen quản lý tài chính — tốt để ôn tổng hợp"},
+  finBuildHabits: {title:"CNBC · How to Build Good Money Habits", url:"https://www.cnbc.com/select/how-to-build-good-money-habits/", desc:"Hướng dẫn xây thói quen tài chính theo từng tháng — gợi ý ý cho bài luận"},
+  investingHome: {title:"Investing.com — Tin tài chính trực tiếp", url:"https://www.investing.com/news/", desc:"Tin tài chính, chứng khoán, đầu tư cập nhật liên tục"}
 };
 
 function normalizeVocabItem(v, srcKey, srcIdx){
@@ -281,7 +298,7 @@ function normalizeVocabItem(v, srcKey, srcIdx){
 var DAYS = [
 {
   key:"mon", code:"T2", label:"Thứ 2", topic:"Hiện tại đơn vs Hiện tại tiếp diễn", weekday:1,
-  reading:{ links:[READING.finMoneyWorries, READING.investingHome], hint:"Đọc bài Money Worries, bấm chọn mức đọc phù hợp trên trang. Gạch chân câu dùng Present Simple (thói quen chi tiêu, sự thật tài chính) và Present Continuous (xu hướng đang thay đổi, ví dụ giá cả 'is rising')." },
+  reading:{ links:[READING.finMoneyPersonalities, READING.investingHome], hint:"Bài báo thật (CNBC) — gạch chân câu dùng Present Simple (mô tả từng 'kiểu tính cách tiền bạc', sự thật chung) và Present Continuous nếu gặp (xu hướng, ví dụ hành vi đang thay đổi)." },
   grammar:[
     { name:"Present Simple", structure:{aff:"S + V(s/es)", neg:"S + do/does + not + V", q:"Do/Does + S + V?"}, uses:[
       {title:"1. Thói quen, hành động lặp lại", note:"Đi kèm trạng từ tần suất (always, usually, often, sometimes, rarely, never). Diễn tả điều xảy ra đều đặn — không phải ngay lúc nói.", ex:["I go to the gym three times a week.","She rarely eats meat.","They usually have dinner at 7pm."]},
@@ -335,11 +352,12 @@ var DAYS = [
     {t:"on autopilot", ipa:"/ɒn ˈɔːtoʊpaɪlət/", pos:"idiom (cụm trạng từ)", pattern:"be on autopilot / do sth on autopilot", fam:{}, reg:"trung tính", m:"làm gì đó theo quán tính, không cần suy nghĩ", syn:["automatically","without thinking"], ant:["consciously","deliberately"], colloc:["run/be on autopilot","do sth on autopilot"], speak:"By the time I get to the office, I'm basically on autopilot.", write:"After years of practice, the task is performed almost entirely on autopilot."},
     {t:"a night owl / an early bird", ipa:"/ə naɪt aʊl/ · /ən ˈɜːrli bɜːrd/", pos:"idiom — cặp danh từ trái nghĩa", pattern:"be a night owl/early bird", fam:{}, reg:"trung tính, thân mật", m:"người thức khuya (cú đêm) / người dậy sớm", syn:["a nocturnal person (night owl)","a morning person (early bird)"], ant:["(hai cụm này đối lập trực tiếp với nhau)"], colloc:["I'm more of a night owl/early bird.","the early bird gets the worm (tục ngữ)"], speak:"I'm definitely a night owl — I do my best work after 10pm.", write:"The survey found that early birds reported higher morning productivity than night owls."}
   ],
+  speaking:["What's your morning routine like? Describe 3 things you always do.","What are you currently doing to try to manage your money better?","Which of the '6 money personalities' from the article do you think you are, and why?"],
   writing:"Viết 6-8 câu mô tả thói quen buổi sáng của bạn, dùng ít nhất 4 từ vựng ở trên và cả hai thì Present Simple / Continuous."
 },
 {
   key:"tue", code:"T3", label:"Thứ 3", topic:"Quá khứ đơn vs Hiện tại hoàn thành", weekday:2,
-  reading:{ links:[READING.finSharePrices, READING.investingHome], hint:"Đọc bài Share Prices Tumble — để ý câu mở đầu (thường Present Perfect — tin mới, VD 'have fallen') so với các câu kể chi tiết có mốc thời gian (Past Simple)." },
+  reading:{ links:[READING.finStocksBounce, READING.investingHome], hint:"Bài báo thật (CNBC) tường thuật 1 phiên giao dịch cụ thể — tìm câu mở đầu kiểu Present Perfect ('have rebounded'...) so với các câu kể chi tiết có mốc thời gian (Past Simple)." },
   grammar:[
     { name:"Past Simple", structure:{aff:"S + V2/-ed", neg:"S + did not + V", q:"Did + S + V?"}, uses:[
       {title:"1. Hành động đã kết thúc tại thời điểm xác định", note:"Có mốc thời gian rõ ràng: yesterday, last week, in 2020, at 6pm...", ex:["I finished the report yesterday.","She called me last night.","They moved to Hue in 2019."]},
@@ -390,11 +408,12 @@ var DAYS = [
     {t:"wind down", ipa:"/waɪnd daʊn/", pos:"phrasal verb (nội động từ)", pattern:"wind down (+ before + N) / wind down with + N", fam:{v:"wind down", n:"a wind-down (routine)"}, reg:"trung tính", m:"thư giãn dần, giảm nhịp độ trước khi nghỉ ngơi/ngủ", syn:["relax gradually","ease off"], ant:["wind up (kích động/khởi động lên)","rev up"], colloc:["wind down before bed","a wind-down routine"], speak:"I like to wind down with some music before bed.", write:"A consistent wind-down routine can improve sleep quality."},
     {t:"second nature", ipa:"/ˈsekənd ˈneɪtʃər/", pos:"idiom (cụm danh từ)", pattern:"sth is second nature to sb / sth becomes second nature", fam:{}, reg:"trung tính", m:"trở thành bản năng, quen đến mức làm tự nhiên không cần suy nghĩ", syn:["automatic","instinctive"], ant:["unfamiliar","foreign (to sb)"], colloc:["become second nature","sth is second nature to sb"], speak:"After years of driving, it's just second nature to me now.", write:"For experienced surgeons, the procedure has become second nature."}
   ],
+  speaking:["Have you ever invested in stocks, gold, or a fund? What happened?","Tell me about a financial decision you made last year.","What's the biggest financial mistake you've ever made?"],
   writing:"Viết một đoạn ngắn kể về một kinh nghiệm bạn đã có (Present Perfect) và một sự kiện cụ thể xảy ra khi nào (Past Simple), dùng ít nhất 4 từ vựng ở trên."
 },
 {
   key:"wed", code:"T4", label:"Thứ 4", topic:"Hiện tại hoàn thành vs HTHT tiếp diễn", weekday:3,
-  reading:{ links:[READING.finTechStocks, READING.investingHome], hint:"Đọc bài Tech Stocks Surge — tìm các câu dùng Present Perfect / Present Perfect Continuous khi mô tả đà tăng của cổ phiếu (VD 'have risen', 'has been climbing')." },
+  reading:{ links:[READING.finCXMT, READING.investingHome], hint:"Bài báo thật (CNBC) về cổ phiếu tăng 466% sau IPO — tìm các câu dùng Present Perfect / Present Perfect Continuous khi mô tả đà tăng (VD 'has surged', 'has been climbing')." },
   grammar:[
     { name:"Present Perfect (đơn)", structure:{aff:"S + have/has + V3/-ed", neg:"S + have/has + not + V3/-ed", q:"Have/Has + S + V3/-ed?"}, uses:[
       {title:"1. Nhấn kết quả / số lượng hoàn thành", note:"Trả lời 'bao nhiêu / đã xong chưa' — không nhấn quá trình.", ex:["I've written 3 emails this morning.","She has read the whole book."]},
@@ -441,11 +460,12 @@ var DAYS = [
     {t:"avid", ipa:"/ˈævɪd/", pos:"adjective", pattern:"an avid + N (reader/fan/collector)", fam:{adj:"avid", adv:"avidly"}, reg:"trang trọng/viết", m:"say mê, cuồng nhiệt (thường đứng trước danh từ chỉ người)", syn:["enthusiastic","keen (Anh-Anh)","passionate"], ant:["indifferent","apathetic"], colloc:["an avid reader/collector/gamer/fan"], speak:"(ít dùng trong khẩu ngữ, nghe hơi 'sách vở' — nói thường sẽ là 'she reads a ton'.)", write:"She is an avid reader who finishes several books a week."},
     {t:"a pastime", ipa:"/ə ˈpæstaɪm/", pos:"noun", pattern:"a favorite pastime / N as a pastime", fam:{n:"pastime"}, reg:"trung tính/trang trọng", m:"thú tiêu khiển, hoạt động giải trí thường xuyên", syn:["a hobby","a leisure activity"], ant:["a chore","an obligation"], colloc:["a favorite/popular pastime"], speak:"Gardening's kind of become my go-to pastime, I guess.", write:"Gardening remains one of the most popular pastimes among retirees."}
   ],
+  speaking:["How long have you been interested in investing or personal finance?","What have you been doing lately to learn more about money or English?","Have you been following any particular stock, company, or crypto recently?"],
   writing:"Trả lời 'How long have you been [hobby]?' bằng một đoạn 5-6 câu, kết hợp Present Perfect và Present Perfect Continuous."
 },
 {
   key:"thu", code:"T5", label:"Thứ 5", topic:"Quá khứ hoàn thành & QKHT tiếp diễn", weekday:4,
-  reading:{ links:[READING.finAramcoIPO, READING.investingHome], hint:"Đọc bài Saudi Aramco IPO — tìm câu dùng Past Perfect khi tác giả nhắc lại việc gì đã xảy ra TRƯỚC một mốc thời gian khác trong bài." },
+  reading:{ links:[READING.finReformationIPO, READING.investingHome], hint:"Bài báo thật (CNBC) về ngày Reformation lên sàn NYSE — tìm câu dùng Past Perfect khi tác giả nhắc lại việc gì đã xảy ra TRƯỚC thời điểm lên sàn." },
   grammar:[
     { name:"Past Perfect", structure:{aff:"S + had + V3/-ed", neg:"S + had + not + V3/-ed", q:"Had + S + V3/-ed?"}, uses:[
       {title:"1. Xảy ra trước một mốc/hành động khác trong quá khứ", note:"Bắt buộc có một mốc quá khứ khác để so sánh — nếu chỉ có 1 hành động đơn lẻ, dùng Past Simple.", ex:["By the time I arrived, the meeting had already started.","She had left before I got there."]},
@@ -490,11 +510,12 @@ var DAYS = [
     {t:"veg out", ipa:"/vedʒ aʊt/", pos:"phrasal verb (nội động từ)", pattern:"veg out (+ in front of + N)", fam:{v:"veg out"}, reg:"thân mật/khẩu ngữ — tránh dùng trong văn trang trọng", m:"nằm ườn, không làm gì, thư giãn thụ động (thường trước TV)", syn:["lounge around","do nothing"], ant:["stay active","be productive"], colloc:["veg out in front of the TV","veg out all day"], speak:"I just want to veg out on the couch this weekend.", write:"(khẩu ngữ — trong văn viết dùng 'relax passively' hoặc 'unwind'.)"},
     {t:"call it a day", ipa:"/kɔːl ɪt ə deɪ/", pos:"idiom (cụm động từ)", pattern:"decide to call it a day", fam:{}, reg:"trung tính, thân mật", m:"dừng làm việc/hoạt động cho hôm nay, coi như xong", syn:["wrap up","finish for the day"], ant:["keep going","push through"], colloc:["decide to call it a day","let's call it a day"], speak:"I'm exhausted — let's just call it a day.", write:"After several unsuccessful attempts, the team decided to call it a day."}
   ],
+  speaking:["Before you started this course, had you ever studied English grammar seriously?","Describe a time when you found out something had already happened without you knowing.","What had you expected before you actually opened a bank account or made your first investment?"],
   writing:"Viết một câu chuyện ngắn (6-8 câu) kể lại một sự kiện, dùng ít nhất 2 câu có Past Perfect để thể hiện thứ tự trước-sau."
 },
 {
   key:"fri", code:"T6", label:"Thứ 6", topic:"Các thì tương lai", weekday:5,
-  reading:{ links:[READING.finCrowdfunding, READING.investingHome], hint:"Đọc bài Crowdfunding — tìm câu nói về xu hướng/dự đoán tương lai của hình thức gọi vốn này (will/going to)." },
+  reading:{ links:[READING.finOutlookNextWeek, READING.investingHome], hint:"Bài báo thật (CNBC) dự báo thị trường tuần tới — tìm câu dùng will/going to khi tác giả dự đoán, và Present Simple khi liệt kê lịch công bố báo cáo tài chính (lịch trình cố định)." },
   grammar:[
     { name:"will", structure:{aff:"S + will + V", neg:"S + will not (won't) + V", q:"Will + S + V?"}, uses:[
       {title:"1. Quyết định tức thời tại thời điểm nói", note:"Vừa nghĩ ra, chưa có kế hoạch từ trước.", ex:["The phone's ringing. — I'll get it.","I'm thirsty — I'll grab a drink."]},
@@ -552,6 +573,7 @@ var DAYS = [
     {t:"retain", ipa:"/rɪˈteɪn/", pos:"verb (ngoại động từ)", pattern:"retain + N (information/knowledge)", fam:{v:"retain", n:"retention", adj:"retained"}, reg:"trang trọng/học thuật", m:"ghi nhớ, giữ lại (thông tin, nhân sự, khách hàng...)", syn:["remember","keep","hold onto"], ant:["forget","lose"], colloc:["retain information/knowledge/customers","memory retention"], speak:"I never retain anything if I don't write it down.", write:"Spaced repetition significantly improves a learner's ability to retain new vocabulary."},
     {t:"consolidate", ipa:"/kənˈsɒlɪdeɪt/", pos:"verb (ngoại động từ)", pattern:"consolidate + N (knowledge/skills/gains)", fam:{v:"consolidate", n:"consolidation", adj:"consolidated"}, reg:"trang trọng/học thuật", m:"củng cố, hợp nhất, làm vững chắc thêm", syn:["strengthen","reinforce","cement"], ant:["weaken","undermine"], colloc:["consolidate knowledge/skills/gains"], speak:"This weekend's for consolidating everything I learned this week.", write:"Regular review sessions help consolidate long-term memory of new material."}
   ],
+  speaking:["What are you going to do to keep improving your English after this week?","What do you think will happen to your finances or investments next year?","What are your study plans for next week?"],
   writing:"Viết 5-6 câu dự đoán/kế hoạch cho tuần học tiếp theo, dùng cả 4 dạng tương lai đã học."
 },
 {
@@ -575,6 +597,7 @@ var DAYS = [
   ],
   corr:[],
   vocab:[],
+  speaking:["Summarize what you learned this week about English tenses — try to use as many different tenses as you can in your answer.","Which tense from this week do you still find confusing, and why?","Explain the difference between Past Simple and Present Perfect to an imaginary beginner student."],
   writing:""
 },
 {
@@ -583,19 +606,77 @@ var DAYS = [
   intro:"Ôn lại toàn bộ 40 từ vựng của tuần (gộp từ Thứ 2 → Thứ 6) — bấm vào từng mục để xem đầy đủ: phát âm, loại từ, cấu trúc, từ đồng nghĩa/trái nghĩa, ví dụ nói và viết. Đánh dấu 'Đã thuộc' cho từ bạn chắc chắn nhớ. Sau đó viết đoạn văn theo đề bên dưới, và cuối cùng mở Error Log để xem lại toàn bộ lỗi trong tuần.",
   grammar:[], contrast:[], mistakes:[],
   blanks:[], corr:[], vocab:[],
+  speaking:["Read your essay from the writing section above out loud, then re-record it once more, trying to sound more natural.","What's one English grammar habit you want to fix next week?"],
   writing:"Describe your daily routine and how it has changed over the past year. (200-250 từ, dùng ít nhất 3 thì và 6 từ vựng của tuần)"
 }
 ];
 
+/* ---------------- listening (TTS) & speaking (speech recognition) ---------------- */
+
+function speak(text, rate){
+  if(!window.speechSynthesis) return false;
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = rate || 1;
+  window.speechSynthesis.speak(u);
+  return true;
+}
+
+var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+function scoreOverlap(target, said){
+  function toWords(s){ return normalize(s).replace(/[^a-z0-9'\s]/gi,"").split(/\s+/).filter(Boolean); }
+  var t = toWords(target), sd = toWords(said);
+  if(!t.length) return 0;
+  var bag = {};
+  sd.forEach(function(w){ bag[w] = (bag[w]||0)+1; });
+  var match = 0;
+  t.forEach(function(w){ if(bag[w]>0){ match++; bag[w]--; } });
+  return Math.round(100*match/t.length);
+}
+
+function startRecording(onInterim, onFinal, onError){
+  if(!SpeechRec) { if(onError) onError("unsupported"); return null; }
+  var rec = new SpeechRec();
+  rec.lang = "en-US"; rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = false;
+  var finalText = "";
+  rec.onresult = function(e){
+    var interim = "";
+    for(var i=e.resultIndex; i<e.results.length; i++){
+      var tr = e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalText += tr; else interim += tr;
+    }
+    onInterim(finalText + interim);
+  };
+  rec.onerror = function(e){ if(onError) onError(e.error); };
+  rec.onend = function(){ onFinal(finalText.trim()); };
+  try{ rec.start(); }catch(e){ if(onError) onError("start-failed"); return null; }
+  return rec;
+}
+
+function buildDictationSentences(day){
+  return day.blanks.map(function(b){
+    var ansParts = b.a[0].split(/,\s*|\s\/\s/);
+    var parts = b.p.split("___");
+    var out = parts[0];
+    for(var i=0;i<ansParts.length;i++){ out += ansParts[i] + (parts[i+1]!==undefined ? parts[i+1] : ""); }
+    return out.replace(/___/g,"...").replace(/\s+/g," ").trim();
+  });
+}
+
 var STORAGE_KEY = "eng-notebook-v2";
 var state = load();
+state.corr = state.corr || {};
+state.dictation = state.dictation || {};
+state.speaking = state.speaking || {};
 
 function load(){
   try{
     var raw = localStorage.getItem(STORAGE_KEY);
     if(raw) return JSON.parse(raw);
   }catch(e){}
-  return { current:null, blanks:{}, vocab:{}, vocabOpen:{}, writing:{}, writeDone:{}, errlog:[] };
+  return { current:null, blanks:{}, corr:{}, vocab:{}, vocabOpen:{}, writing:{}, writeDone:{}, errlog:[], dictation:{}, speaking:{} };
 }
 function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -607,6 +688,74 @@ function isCorrect(val, answers){
 }
 
 var todayWeekday = new Date().getDay();
+
+/* ---------------- writing self-check (heuristic, offline) ---------------- */
+
+var PS3SG = ["goes","does","has","works","lives","likes","wants","needs","studies","tries","watches","gets","makes","takes","comes","knows","thinks","believes","seems","looks","feels","means","keeps","starts","closes","opens","leaves","arrives","begins","plays","runs","reads","writes","spends","earns","saves","invests","grows","rises","falls","increases","decreases","costs","pays"];
+var IRREG_PAST = ["went","saw","did","had","said","got","made","took","came","knew","thought","found","gave","told","became","showed","left","felt","brought","began","bought","sold","spent","earned","rose","fell","grew","lost","won","paid","held","kept","meant","understood","wrote","spoke","broke","chose","drove","ate","ran","sat","stood","heard","met","built","read"];
+var PART = "(?:\\w+ed|\\w+en|been|gone|done|seen|made|taken|known|given|come|found|said|told|thought|shown|written|begun|bought|sold|spent|chosen|driven|run|sat|stood|heard|met|built|read|held|kept|meant|understood|grown|risen|fallen|lost|won|paid|felt)";
+var STATIVE = ["knowing","understanding","believing","wanting","needing","loving","liking","hating","preferring","owning","belonging","seeming","realizing","recognizing","remembering","forgetting","meaning","doubting","supposing","containing","consisting","involving","requiring","resembling","depending"];
+
+function getTenseRegex(name){
+  var base = (name||"").replace(/\s*\(.*?\)\s*/g,"").trim();
+  switch(base){
+    case "Present Simple": return new RegExp("\\b(" + PS3SG.join("|") + "|always|usually|often|sometimes|rarely|never|generally|normally)\\b","i");
+    case "Present Continuous": return /\b(?:am|is|are)\s+(?!going\s+to\b)\w+ing\b/i;
+    case "Past Simple": return new RegExp("\\b(" + IRREG_PAST.join("|") + ")\\b|\\b\\w+ed\\b","i");
+    case "Present Perfect": return new RegExp("\\b(?:have|has)\\s+(?:just|already|never|ever|recently|possibly|certainly|not\\s+)?" + PART + "\\b","i");
+    case "Present Perfect Continuous": return /\b(?:have|has)\s+been\s+\w+ing\b/i;
+    case "Past Perfect": return new RegExp("\\bhad\\s+(?:just|already|never|ever|not\\s+)?" + PART + "\\b","i");
+    case "Past Perfect Continuous": return /\bhad\s+been\s+\w+ing\b/i;
+    case "will": return /\b(will|won't|'ll)\b/i;
+    case "going to": return /\b(?:am|is|are)\s+going\s+to\b/i;
+    case "Future Continuous": return /\bwill\s+be\s+\w+ing\b/i;
+    default: return null;
+  }
+}
+
+function splitSentences(text){
+  return (text||"").split(/(?<=[.!?])\s+/).map(function(s){return s.trim();}).filter(Boolean);
+}
+
+function scanMistakes(text){
+  var warnings = [];
+  var sentences = splitSentences(text);
+  var stativeRe = new RegExp("\\b(?:am|is|are|was|were|been|being)\\s+(" + STATIVE.join("|") + ")\\b","i");
+  var pastMarkerRe = /\b(yesterday|ago|last\s+\w+|in\s+(19|20)\d{2})\b/i;
+  var havePerfectRe = /\b(have|has)\b(?!\s*n't)(?!\s+to\b)/i;
+  var timeClauseWillRe = /\b(when|after|before|until|as soon as)\b[^,.!?]*\bwill\b/i;
+  sentences.forEach(function(s){
+    if(stativeRe.test(s)){
+      warnings.push({snippet:s, tip:"Có thể đang dùng thì tiếp diễn với động từ trạng thái (stative verb) — các động từ như know/understand/want/love/own... thường không chia tiếp diễn."});
+    }
+    if(havePerfectRe.test(s) && pastMarkerRe.test(s) && !/\bhave\s+to\b/i.test(s)){
+      warnings.push({snippet:s, tip:"Câu có 'have/has' kèm mốc thời gian xác định (yesterday/ago/last.../in năm...) — kiểm tra lại, mốc thời gian xác định thường đi với Past Simple, không phải Present Perfect."});
+    }
+    if(timeClauseWillRe.test(s)){
+      warnings.push({snippet:s, tip:"Trong mệnh đề thời gian sau when/after/before/until/as soon as, thường không dùng 'will' — kiểm tra lại xem có bị lặp 'will' không."});
+    }
+  });
+  return warnings;
+}
+
+function analyzeWriting(day, text, vocabListOverride){
+  var words = (text.trim().match(/\S+/g)||[]).length;
+  var tenseHits = [];
+  if(day.grammar && day.grammar.length){
+    day.grammar.forEach(function(g){
+      var re = getTenseRegex(g.name);
+      if(re) tenseHits.push({name:g.name, used: re.test(text)});
+    });
+  }
+  var vocabList = vocabListOverride || day.vocab || [];
+  var vocabHits = vocabList.map(function(v){
+    var stem = v.t.split(/[\/(]/)[0].trim().split(" ")[0];
+    var re = new RegExp("\\b" + stem.replace(/[.*+?^${}()|[\]\\]/g,"\\$&") + "\\w*", "i");
+    return { term:v.t, used: re.test(text) };
+  });
+  var warnings = scanMistakes(text);
+  return { words:words, tenseHits:tenseHits, vocabHits:vocabHits, warnings:warnings };
+}
 
 function dayStatus(d){
   var blankTotal = d.blanks.length, blankDone = 0;
@@ -673,6 +822,13 @@ function renderMain(){
     '<div><div class="eyebrow">'+d.label+' · Tuần 1</div><h1>'+d.topic+'</h1></div>'+
     '<div class="day-progress"><span>Tiến độ ngày</span><div class="bar"><div class="fill" style="width:'+st.pct+'%"></div></div><span>'+st.pct+'%</span></div>');
   main.appendChild(head);
+
+  var vocabSource = d.vocab.map(function(v,i){ return normalizeVocabItem(v, d.key, i); });
+  var isConsolidate = d.type === "consolidate";
+  if(isConsolidate){
+    vocabSource = [];
+    DAYS.forEach(function(dd){ if(dd.vocab && dd.vocab.length){ dd.vocab.forEach(function(v,i){ vocabSource.push(normalizeVocabItem(v, dd.key, i)); }); } });
+  }
 
   if(d.intro){
     var introSec = el("section","block");
@@ -800,12 +956,22 @@ function renderMain(){
     var corrSec = el("section","block");
     corrSec.appendChild(el("h2",null,'Tìm và sửa lỗi sai <span class="tag">tự chấm, có giải thích</span>'));
     d.corr.forEach(function(c, i){
+      var ck = d.key+"-c"+i;
       var item = el("div","corr-item ex");
+      item.appendChild(el("div",null,'<span class="qn">'+(i+1)+'.</span><span class="orig">"'+c.s+'"</span>'));
+      var myRow = el("div","blank-row");
+      var myInput = document.createElement("input");
+      myInput.type = "text";
+      myInput.placeholder = "Viết lại câu đúng theo bạn...";
+      myInput.style.minWidth = "260px"; myInput.style.flex = "1";
+      myInput.value = state.corr[ck] || "";
+      myInput.addEventListener("input", function(){ state.corr[ck] = myInput.value; save(); });
+      myRow.appendChild(myInput);
+      item.appendChild(myRow);
       var ans = el("div","corr-answer",c.a);
-      var btn = el("button","btn ghost small","Xem câu đúng + giải thích");
+      var btn = el("button","btn ghost small","So với đáp án + giải thích");
       btn.style.marginTop = "6px";
       btn.addEventListener("click", function(){ ans.classList.toggle("show"); });
-      item.appendChild(el("div",null,'<span class="qn">'+(i+1)+'.</span><span class="orig">"'+c.s+'"</span>'));
       item.appendChild(btn);
       item.appendChild(ans);
       corrSec.appendChild(item);
@@ -813,13 +979,52 @@ function renderMain(){
     main.appendChild(corrSec);
   }
 
-  // vocab
-  var vocabSource = d.vocab.map(function(v,i){ return normalizeVocabItem(v, d.key, i); });
-  var isConsolidate = d.type === "consolidate";
-  if(isConsolidate){
-    vocabSource = [];
-    DAYS.forEach(function(dd){ if(dd.vocab && dd.vocab.length){ dd.vocab.forEach(function(v,i){ vocabSource.push(normalizeVocabItem(v, dd.key, i)); }); } });
+  // listening (dictation)
+  var dictationSentences = d.blanks.length ? buildDictationSentences(d)
+    : (d.grammar && d.grammar.length) ? (d.grammar||[]).reduce(function(acc,g){ g.uses.forEach(function(u){ acc = acc.concat(u.ex); }); return acc; }, []).slice(0,8)
+    : vocabSource.slice(0,8).map(function(v){ return v.write || v.speak; }).filter(Boolean);
+  if(dictationSentences.length){
+    var lisSec = el("section","block");
+    lisSec.appendChild(el("h2",null,'Luyện nghe — Nghe & chép chính tả <span class="tag">'+dictationSentences.length+' câu</span>'));
+    if(!window.speechSynthesis){
+      lisSec.appendChild(el("div","empty-note","Trình duyệt của bạn không hỗ trợ đọc văn bản (Text-to-Speech). Hãy thử Chrome hoặc Edge."));
+    }
+    dictationSentences.forEach(function(sentence, i){
+      var dk = d.key+"-d"+i;
+      var row = el("div","ex");
+      var top = el("div","dict-controls");
+      var playBtn = el("button","btn small","🔊 Nghe (thường)");
+      var slowBtn = el("button","btn ghost small","🐢 Nghe (chậm)");
+      playBtn.addEventListener("click", function(){ speak(sentence, 0.95); });
+      slowBtn.addEventListener("click", function(){ speak(sentence, 0.6); });
+      top.appendChild(el("span","qn",(i+1)+".")); top.appendChild(playBtn); top.appendChild(slowBtn);
+      row.appendChild(top);
+      var inputRow = el("div","blank-row");
+      var input = document.createElement("input");
+      input.type = "text"; input.placeholder = "Gõ lại câu bạn vừa nghe...";
+      input.style.flex = "1"; input.style.minWidth="260px";
+      input.value = state.dictation[dk] || "";
+      var icon = el("span","fb-icon");
+      function paintDict(){
+        if(!input.value){ icon.textContent=""; icon.className="fb-icon"; input.className=""; return; }
+        var ok = normalize(input.value) === normalize(sentence);
+        icon.textContent = ok ? "✓ khớp" : "chưa khớp";
+        icon.className = "fb-icon " + (ok?"ok":"no");
+        input.className = ok ? "correct":"wrong";
+      }
+      paintDict();
+      input.addEventListener("input", function(){ state.dictation[dk]=input.value; save(); paintDict(); });
+      var revealBtn = el("button","btn ghost small","Xem transcript");
+      var revealEl = el("div","reveal-text","<b>Transcript:</b> "+sentence);
+      revealBtn.addEventListener("click", function(){ revealEl.classList.toggle("show"); });
+      inputRow.appendChild(input); inputRow.appendChild(icon); inputRow.appendChild(revealBtn);
+      row.appendChild(inputRow); row.appendChild(revealEl);
+      lisSec.appendChild(row);
+    });
+    main.appendChild(lisSec);
   }
+
+  // vocab
   if(vocabSource.length){
     var vocSec = el("section","block");
     var masteredCount = vocabSource.filter(function(v){ return state.vocab[v._src+"-v"+v._idx]==="known"; }).length;
@@ -843,6 +1048,12 @@ function renderMain(){
         '<span class="reg-badge">'+v.reg+'</span>'+
         (mastered ? '<span class="mastered-check">✓</span>' : '')+
         '<span class="chevron">▾</span>');
+      if(window.speechSynthesis){
+        var playTermBtn = el("button","vocab-play","🔊");
+        playTermBtn.title = "Nghe phát âm";
+        playTermBtn.addEventListener("click", function(e){ e.stopPropagation(); speak(v.t.replace(/\(.*?\)/g,""), 0.9); });
+        head.appendChild(playTermBtn);
+      }
       var body = el("div","vocab-body",
         '<div class="vf-row"><span class="k">Nghĩa</span>'+v.m+'</div>'+
         (v.pattern ? '<div class="vf-row"><span class="k">Cấu trúc</span><span class="pattern-box">'+v.pattern+'</span></div>' : '')+
@@ -872,6 +1083,87 @@ function renderMain(){
     main.appendChild(vocSec);
   }
 
+  // speaking
+  if((dictationSentences.length) || (d.speaking && d.speaking.length)){
+    var spkSec = el("section","block");
+    spkSec.appendChild(el("h2",null,'Luyện nói <span class="tag">shadowing &amp; trả lời</span>'));
+    if(!SpeechRec){
+      spkSec.appendChild(el("div","empty-note","Trình duyệt của bạn không hỗ trợ nhận diện giọng nói (Speech Recognition). Hãy dùng Chrome hoặc Edge trên máy tính/Android, hoặc gõ câu trả lời vào ô bên dưới thay vì ghi âm."));
+    }
+
+    if(dictationSentences.length){
+      spkSec.appendChild(el("div","wr-sub","Shadowing — nghe rồi nói lại y hệt"));
+      dictationSentences.slice(0,4).forEach(function(sentence, i){
+        var row = el("div","ex shadow-row");
+        row.appendChild(el("div","prompt",'"'+sentence+'"'));
+        var ctr = el("div","dict-controls");
+        var playBtn = el("button","btn small","🔊 Nghe");
+        playBtn.addEventListener("click", function(){ speak(sentence, 0.95); });
+        ctr.appendChild(playBtn);
+        var result = el("span","score-pill","");
+        result.style.display = "none";
+        if(SpeechRec){
+          var recBtn = el("button","btn ghost small","🎤 Nói theo");
+          var active = null;
+          recBtn.addEventListener("click", function(){
+            if(active){ active.stop(); return; }
+            recBtn.textContent = "⏹ Đang nghe...";
+            active = startRecording(function(){}, function(finalText){
+              recBtn.textContent = "🎤 Nói theo";
+              active = null;
+              if(finalText){
+                var sc = scoreOverlap(sentence, finalText);
+                result.style.display = "inline-flex";
+                result.innerHTML = 'Bạn nói: "'+finalText+'" — khớp <b>'+sc+'%</b>';
+              }
+            }, function(err){
+              recBtn.textContent = "🎤 Nói theo"; active = null;
+              result.style.display="inline-flex"; result.textContent = err==="not-allowed" ? "Chưa cấp quyền micro" : "Không nhận diện được, thử lại";
+            });
+          });
+          ctr.appendChild(recBtn);
+        }
+        row.appendChild(ctr);
+        row.appendChild(result);
+        spkSec.appendChild(row);
+      });
+    }
+
+    if(d.speaking && d.speaking.length){
+      spkSec.appendChild(el("div","wr-sub","Trả lời câu hỏi nói (ghi âm hoặc gõ)"));
+      d.speaking.forEach(function(q, i){
+        var qk = d.key+"-q"+i;
+        var qWrap = el("div","ex");
+        qWrap.appendChild(el("div","prompt",'<span class="qn">'+(i+1)+'.</span>'+q));
+        var ctr = el("div","dict-controls");
+        var ta2 = document.createElement("textarea");
+        ta2.placeholder = "Transcript câu trả lời của bạn sẽ hiện ở đây — có thể tự gõ/sửa...";
+        ta2.style.minHeight = "60px"; ta2.style.marginTop = "8px";
+        ta2.value = state.speaking[qk] || "";
+        ta2.addEventListener("input", function(){ state.speaking[qk]=ta2.value; save(); });
+        if(SpeechRec){
+          var recBtn2 = el("button","btn small","🎤 Ghi âm trả lời");
+          var active2 = null;
+          recBtn2.addEventListener("click", function(){
+            if(active2){ active2.stop(); return; }
+            recBtn2.textContent = "⏹ Đang nghe...";
+            active2 = startRecording(function(interim){ ta2.value = interim; }, function(finalText){
+              recBtn2.textContent = "🎤 Ghi âm trả lời"; active2 = null;
+              if(finalText){ ta2.value = finalText; state.speaking[qk]=finalText; save(); }
+            }, function(){
+              recBtn2.textContent = "🎤 Ghi âm trả lời"; active2 = null;
+            });
+          });
+          ctr.appendChild(recBtn2);
+        }
+        qWrap.appendChild(ctr);
+        qWrap.appendChild(ta2);
+        spkSec.appendChild(qWrap);
+      });
+    }
+    main.appendChild(spkSec);
+  }
+
   // writing
   if(d.writing && d.type !== "review"){
     var wSec = el("section","block");
@@ -897,6 +1189,59 @@ function renderMain(){
       timer = setTimeout(function(){ state.writing[d.key]=ta.value; save(); renderRail(); }, 400);
     });
     cb.addEventListener("change", function(){ state.writeDone[d.key]=cb.checked; save(); });
+
+    var wActions = el("div","write-actions");
+    var checkBtn = el("button","btn small","Chấm bài (tự động, offline)");
+    var copyBtn = el("button","btn ghost small","Sao chép + nhờ Claude chấm chi tiết");
+    wActions.appendChild(checkBtn); wActions.appendChild(copyBtn);
+    wSec.appendChild(wActions);
+
+    var reportBox = el("div","write-report");
+    reportBox.style.display = "none";
+    wSec.appendChild(reportBox);
+
+    checkBtn.addEventListener("click", function(){
+      var vocabForCheck = isConsolidate ? vocabSource : d.vocab;
+      var rep = analyzeWriting(d, ta.value, vocabForCheck);
+      var html = "";
+      html += '<div class="wr-title">Kết quả chấm nhanh (heuristic — chỉ mang tính gợi ý, không thay thế chấm thật)</div>';
+      html += '<div class="wr-line"><b>' + rep.words + '</b> từ (mục tiêu: xem đề bài phía trên)</div>';
+      if(rep.tenseHits.length){
+        html += '<div class="wr-sub">Các thì đã dùng</div><div class="check-grid">';
+        rep.tenseHits.forEach(function(t){
+          html += '<span class="check-item ' + (t.used?"ok":"no") + '">' + (t.used?"✓":"✗") + ' ' + t.name + '</span>';
+        });
+        html += '</div>';
+      }
+      var usedVocabCount = rep.vocabHits.filter(function(v){return v.used;}).length;
+      html += '<div class="wr-sub">Từ vựng đã dùng (' + usedVocabCount + '/' + rep.vocabHits.length + ')</div><div class="check-grid">';
+      rep.vocabHits.forEach(function(v){
+        html += '<span class="check-item ' + (v.used?"ok":"no") + '">' + (v.used?"✓":"·") + ' ' + v.term + '</span>';
+      });
+      html += '</div>';
+      if(rep.warnings.length){
+        html += '<div class="wr-sub">Cảnh báo ngữ pháp cần xem lại (' + rep.warnings.length + ')</div>';
+        rep.warnings.forEach(function(w){
+          html += '<div class="warn-item"><div class="w-snip">"' + w.snippet + '"</div><div class="w-tip">' + w.tip + '</div></div>';
+        });
+      } else {
+        html += '<div class="wr-sub">Cảnh báo ngữ pháp</div><div class="empty-note">Không phát hiện lỗi nào trong danh sách lỗi thường gặp đã kiểm tra — nhưng công cụ này chỉ dò được vài mẫu lỗi cố định, không phải kiểm tra ngữ pháp đầy đủ. Nên dùng nút "Sao chép + nhờ Claude chấm chi tiết" để được chấm kỹ hơn.</div>';
+      }
+      reportBox.innerHTML = html;
+      reportBox.style.display = "block";
+    });
+
+    copyBtn.addEventListener("click", function(){
+      var prompt = "Hãy chấm bài viết tiếng Anh sau của tôi (đề bài: " + d.writing.replace(/<[^>]+>/g,"") + "). Tập trung vào ngữ pháp các thì đã học (Present Simple/Continuous, Past Simple, Present Perfect/Continuous, Past Perfect/Continuous, các thì tương lai). Chỉ ra lỗi sai cụ thể, sửa lại đúng, và giải thích ngắn gọn vì sao sai.\n\n---\n" + ta.value;
+      function done(ok){
+        copyBtn.textContent = ok ? "Đã copy — dán vào chat với Claude!" : "Không copy được, hãy tự chọn & copy";
+        setTimeout(function(){ copyBtn.textContent = "Sao chép + nhờ Claude chấm chi tiết"; }, 2500);
+      }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(prompt).then(function(){done(true);}, function(){done(false);});
+      } else { done(false); }
+    });
+
     main.appendChild(wSec);
   }
 
