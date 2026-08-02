@@ -1778,6 +1778,38 @@ function renderMain(){
           roundBox.appendChild(ctr);
           if(opts.countdown) roundBox.appendChild(el("div","empty-note","Bấm ghi âm rồi nói ngay khi đếm về 0 — không có thời gian soạn câu trước, để tránh dịch trong đầu."));
           roundBox.appendChild(ta2);
+
+          var fbBtn = el("button","btn small","🤖 Nhận xét & sửa ngữ pháp");
+          fbBtn.style.marginTop = "8px";
+          var fbBox = el("div","write-report");
+          fbBox.style.display = "none";
+          fbBtn.addEventListener("click", async function(){
+            if(!ta2.value.trim()) return;
+            fbBtn.disabled = true;
+            var prevText = fbBtn.textContent;
+            fbBtn.textContent = "Đang nhận xét...";
+            fbBox.style.display = "block";
+            fbBox.innerHTML = '<div class="wr-title">AI đang nhận xét (khoảng 5-10 giây)...</div>';
+            try{
+              var res = await fetch(AI_WORKER_URL.replace(/\/chat$/,"/feedback"), {
+                method:"POST",
+                headers:{"content-type":"application/json"},
+                body: JSON.stringify({ question: q, transcript: ta2.value })
+              });
+              var data = await res.json();
+              if(!res.ok || !data.reply){
+                fbBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">' +
+                  (data.error==="upstream_error" ? "backend/API key có thể chưa cấu hình xong" : (data.error || "không kết nối được")) + '</div>';
+              } else {
+                fbBox.innerHTML = '<div class="wr-title">Nhận xét từ AI</div><div class="wr-line" style="white-space:pre-wrap">' + data.reply.replace(/</g,"&lt;") + '</div>';
+              }
+            }catch(e){
+              fbBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">Không kết nối được tới backend — kiểm tra lại kết nối mạng.</div>';
+            }
+            fbBtn.disabled = false; fbBtn.textContent = prevText;
+          });
+          roundBox.appendChild(fbBtn);
+          roundBox.appendChild(fbBox);
           return roundBox;
         }
         qWrap.appendChild(buildRound("Vòng 1 — nói tự do", qk, qk+"-p1", "Transcript vòng 1 sẽ hiện ở đây...", {countdown:true}));
