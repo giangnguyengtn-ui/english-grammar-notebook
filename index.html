@@ -781,6 +781,33 @@ function speak(text, rate){
   return true;
 }
 
+/* Play/stop toggle for a 🔊 button: click once to play, click again (or click
+   a different toggle button) to stop. Only one utterance can play at a time
+   anyway (speechSynthesis is a single shared engine), so this also resets
+   whichever other toggle button was mid-playback. */
+var activeSpeakToggleBtn = null;
+function resetSpeakToggleBtn(){
+  if(activeSpeakToggleBtn){ activeSpeakToggleBtn.textContent = "🔊"; activeSpeakToggleBtn = null; }
+}
+function speakToggle(btn, text, rate){
+  if(!window.speechSynthesis) return;
+  if(activeSpeakToggleBtn === btn){
+    window.speechSynthesis.cancel();
+    resetSpeakToggleBtn();
+    return;
+  }
+  resetSpeakToggleBtn();
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = rate || 1;
+  u.onend = resetSpeakToggleBtn;
+  u.onerror = resetSpeakToggleBtn;
+  activeSpeakToggleBtn = btn;
+  btn.textContent = "⏹";
+  window.speechSynthesis.speak(u);
+}
+
 var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
 function scoreOverlap(target, said){
@@ -1818,8 +1845,8 @@ function renderMain(){
         }
         if(m.role==="assistant"){
           var replayBtn = el("button","chat-replay","🔊");
-          replayBtn.title = "Nghe lại";
-          replayBtn.addEventListener("click", function(){ speak(mainText, 0.95); });
+          replayBtn.title = "Nghe lại (bấm lần nữa để dừng)";
+          replayBtn.addEventListener("click", function(){ speakToggle(replayBtn, mainText, 0.95); });
           bubble.appendChild(replayBtn);
         }
         chatLog.appendChild(bubble);
@@ -2411,8 +2438,8 @@ function renderQAChatLog(logEl){
     bubble.appendChild(el("div","chat-text",m.content));
     if(m.role==="assistant"){
       var replayBtn = el("button","chat-replay","🔊");
-      replayBtn.title = "Nghe lại";
-      replayBtn.addEventListener("click", function(){ speak(m.content, 0.95); });
+      replayBtn.title = "Nghe lại (bấm lần nữa để dừng)";
+      replayBtn.addEventListener("click", function(){ speakToggle(replayBtn, m.content, 0.95); });
       bubble.appendChild(replayBtn);
     }
     logEl.appendChild(bubble);
