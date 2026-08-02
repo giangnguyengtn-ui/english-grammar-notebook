@@ -279,6 +279,8 @@
   .fab.fab-qa{ bottom:84px; background:var(--gold); }
   .fab.fab-qa:hover{ background:var(--gold); opacity:0.88; }
   @media (max-width:780px){ .fab.fab-qa{ bottom:20px; right:150px; } }
+  #qaOverlay .errlog-panel{ display:flex; flex-direction:column; }
+  #qaBody{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; min-height:0; }
 </style>
 
 <div class="app">
@@ -301,7 +303,6 @@
   <div class="errlog-panel">
     <button class="errlog-close" id="closeQA">✕</button>
     <h3>Hỏi đáp nhanh</h3>
-    <div class="sub">Hỏi bất kỳ điều gì về ngữ pháp, từ vựng, hoặc nội dung đang học — AI giải thích chi tiết bằng tiếng Việt (khác với khung Trò chuyện AI, vốn dành để luyện phản xạ nói).</div>
     <div id="qaBody"></div>
   </div>
 </div>
