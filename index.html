@@ -840,6 +840,63 @@ function wpmBand(wpm){
   return "Nhanh — kiểm tra lại độ rõ: nói nhanh mà nuốt âm cuối thì khó nghe hơn nói chậm.";
 }
 
+/* Shared "🧑‍🏫 Nhận xét & sửa ngữ pháp" button + result box, used by both the
+   2-round speaking Q&A and Free-Talk 60s. getTranscript is a function (not a
+   plain string) so it always reads the latest transcript at click time. */
+function buildSpeakingFeedbackBox(question, getTranscript){
+  var wrap = el("div",null);
+  var fbBtn = el("button","btn small","🧑‍🏫 Nhận xét & sửa ngữ pháp");
+  fbBtn.style.marginTop = "8px";
+  var fbBox = el("div","write-report");
+  fbBox.style.display = "none";
+  fbBtn.addEventListener("click", async function(){
+    var transcript = getTranscript();
+    if(!transcript || !transcript.trim()) return;
+    fbBtn.disabled = true;
+    var prevText = fbBtn.textContent;
+    fbBtn.textContent = "Đang nhận xét...";
+    fbBox.style.display = "block";
+    fbBox.innerHTML = '<div class="wr-title">Đang nhận xét (khoảng 5-10 giây)...</div>';
+    try{
+      var res = await fetch(AI_WORKER_URL.replace(/\/chat$/,"/feedback"), {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify({ question: question, transcript: transcript })
+      });
+      var data = await res.json();
+      if(!res.ok || !data.reply){
+        fbBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">' +
+          (data.error==="upstream_error" ? "backend/API key có thể chưa cấu hình xong" : (data.error || "không kết nối được")) + '</div>';
+      } else {
+        fbBox.innerHTML = "";
+        var refLabel = "Bản tham khảo:";
+        var refIdx = data.reply.indexOf(refLabel);
+        var mainReply = refIdx>-1 ? data.reply.slice(0, refIdx).trim() : data.reply;
+        var refText = refIdx>-1 ? data.reply.slice(refIdx+refLabel.length).trim() : "";
+        fbBox.appendChild(el("div","wr-title","Nhận xét"));
+        fbBox.appendChild(el("div","wr-line", mainReply.replace(/</g,"&lt;").replace(/\n/g,"<br>")));
+        if(refText){
+          var refBox = el("div",null);
+          refBox.style.marginTop = "12px";
+          refBox.appendChild(el("div","wr-sub","Bản tham khảo — nói chuẩn lại"));
+          refBox.appendChild(el("div","ex-line", refText.replace(/</g,"&lt;")));
+          var refPlayBtn = el("button","btn ghost small","🔊 Nghe & nói lại theo");
+          refPlayBtn.style.marginTop = "6px";
+          refPlayBtn.addEventListener("click", function(){ speakToggle(refPlayBtn, refText, 0.9); });
+          refBox.appendChild(refPlayBtn);
+          fbBox.appendChild(refBox);
+        }
+      }
+    }catch(e){
+      fbBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">Không kết nối được tới backend — kiểm tra lại kết nối mạng.</div>';
+    }
+    fbBtn.disabled = false; fbBtn.textContent = prevText;
+  });
+  wrap.appendChild(fbBtn);
+  wrap.appendChild(fbBox);
+  return wrap;
+}
+
 /* opts.continuous:true keeps listening across silence (auto-restarts the
    underlying recognizer on each natural onend) so pauseCount/WPM reflect a
    whole multi-sentence answer instead of stopping at the first pause. */
@@ -1712,10 +1769,10 @@ function renderMain(){
         var qWrap = el("div","ex speaking-2round");
         qWrap.appendChild(el("div","prompt",'<span class="qn">'+(i+1)+'.</span>'+q));
 
-        var copyDeBtn = el("button","btn ghost small","Copy đề (để nhờ AI hỏi & phản hồi)");
+        var copyDeBtn = el("button","btn ghost small","Copy đề (để luyện thêm ở nơi khác)");
         copyDeBtn.addEventListener("click", function(){
           var promptText = "Hãy đóng vai partner luyện nói. Hỏi tôi câu này và phản hồi tự nhiên, sửa lỗi lớn sau khi tôi nói xong: " + q;
-          function done(ok){ copyDeBtn.textContent = ok ? "Đã copy!" : "Không copy được"; setTimeout(function(){ copyDeBtn.textContent = "Copy đề (để nhờ AI hỏi & phản hồi)"; }, 2000); }
+          function done(ok){ copyDeBtn.textContent = ok ? "Đã copy!" : "Không copy được"; setTimeout(function(){ copyDeBtn.textContent = "Copy đề (để luyện thêm ở nơi khác)"; }, 2000); }
           if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(promptText).then(function(){done(true);}, function(){done(false);}); } else { done(false); }
         });
         qWrap.appendChild(copyDeBtn);
@@ -1778,38 +1835,7 @@ function renderMain(){
           roundBox.appendChild(ctr);
           if(opts.countdown) roundBox.appendChild(el("div","empty-note","Bấm ghi âm rồi nói ngay khi đếm về 0 — không có thời gian soạn câu trước, để tránh dịch trong đầu."));
           roundBox.appendChild(ta2);
-
-          var fbBtn = el("button","btn small","🤖 Nhận xét & sửa ngữ pháp");
-          fbBtn.style.marginTop = "8px";
-          var fbBox = el("div","write-report");
-          fbBox.style.display = "none";
-          fbBtn.addEventListener("click", async function(){
-            if(!ta2.value.trim()) return;
-            fbBtn.disabled = true;
-            var prevText = fbBtn.textContent;
-            fbBtn.textContent = "Đang nhận xét...";
-            fbBox.style.display = "block";
-            fbBox.innerHTML = '<div class="wr-title">AI đang nhận xét (khoảng 5-10 giây)...</div>';
-            try{
-              var res = await fetch(AI_WORKER_URL.replace(/\/chat$/,"/feedback"), {
-                method:"POST",
-                headers:{"content-type":"application/json"},
-                body: JSON.stringify({ question: q, transcript: ta2.value })
-              });
-              var data = await res.json();
-              if(!res.ok || !data.reply){
-                fbBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">' +
-                  (data.error==="upstream_error" ? "backend/API key có thể chưa cấu hình xong" : (data.error || "không kết nối được")) + '</div>';
-              } else {
-                fbBox.innerHTML = '<div class="wr-title">Nhận xét từ AI</div><div class="wr-line" style="white-space:pre-wrap">' + data.reply.replace(/</g,"&lt;") + '</div>';
-              }
-            }catch(e){
-              fbBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">Không kết nối được tới backend — kiểm tra lại kết nối mạng.</div>';
-            }
-            fbBtn.disabled = false; fbBtn.textContent = prevText;
-          });
-          roundBox.appendChild(fbBtn);
-          roundBox.appendChild(fbBox);
+          roundBox.appendChild(buildSpeakingFeedbackBox(q, function(){ return ta2.value; }));
           return roundBox;
         }
         qWrap.appendChild(buildRound("Vòng 1 — nói tự do", qk, qk+"-p1", "Transcript vòng 1 sẽ hiện ở đây...", {countdown:true}));
@@ -1834,8 +1860,8 @@ function renderMain(){
   // AI conversation — natural 1:1 speaking practice
   {
     var aiSec = el("section","block");
-    aiSec.appendChild(el("h2",null,'Trò chuyện AI — luyện nói tự nhiên 1:1 <span class="tag">beta</span>'));
-    aiSec.appendChild(el("div","intro",'Nói chuyện trực tiếp bằng giọng nói với AI về chủ đề hôm nay ('+d.topic+') hoặc lái sang chủ đề đời sống bất kỳ — AI sẽ trả lời tự nhiên, ngắn gọn như hội thoại thật, và nhẹ nhàng gợi ý nếu bạn nói sai ngữ pháp.'));
+    aiSec.appendChild(el("h2",null,'Luyện nói tự nhiên 1:1 <span class="tag">beta</span>'));
+    aiSec.appendChild(el("div","intro",'Nói chuyện trực tiếp bằng giọng nói về chủ đề hôm nay ('+d.topic+') hoặc lái sang chủ đề đời sống bất kỳ — hệ thống sẽ phản hồi tự nhiên, ngắn gọn như hội thoại thật, và nhẹ nhàng gợi ý nếu bạn nói sai ngữ pháp.'));
     if(!SpeechRec){
       aiSec.appendChild(el("div","empty-note","Ghi âm cần Chrome/Edge. Bạn vẫn có thể gõ chữ để trò chuyện bên dưới."));
     }
@@ -1911,7 +1937,7 @@ function renderMain(){
       state.chat[chatKey] = state.chat[chatKey] || [];
       state.chat[chatKey].push({role:"user", content:text.trim()});
       save(); renderChatLog();
-      statusEl.textContent = "AI đang trả lời...";
+      statusEl.textContent = "Đang trả lời...";
       try{
         var res = await fetch(AI_WORKER_URL, {
           method:"POST",
@@ -2022,8 +2048,8 @@ function renderMain(){
 
     var wActions = el("div","write-actions");
     var checkBtn = el("button","btn small","Chấm bài (tự động, offline)");
-    var aiGradeBtn = el("button","btn small","🤖 Chấm bằng AI (trong app)");
-    var copyBtn = el("button","btn ghost small","Copy để nhờ AI chấm");
+    var aiGradeBtn = el("button","btn small","🧑‍🏫 Chấm bài (trong app)");
+    var copyBtn = el("button","btn ghost small","Copy để nhờ chấm bài");
     wActions.appendChild(checkBtn); wActions.appendChild(aiGradeBtn); wActions.appendChild(copyBtn);
     wSec.appendChild(wActions);
 
@@ -2041,7 +2067,7 @@ function renderMain(){
       var prevText = aiGradeBtn.textContent;
       aiGradeBtn.textContent = "Đang chấm...";
       aiGradeBox.style.display = "block";
-      aiGradeBox.innerHTML = '<div class="wr-title">AI đang chấm bài (khoảng 5-10 giây)...</div>';
+      aiGradeBox.innerHTML = '<div class="wr-title">Đang chấm bài (khoảng 5-10 giây)...</div>';
       try{
         var res = await fetch(AI_WORKER_URL.replace(/\/chat$/,"/grade"), {
           method:"POST",
@@ -2053,7 +2079,7 @@ function renderMain(){
           aiGradeBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">' +
             (data.error==="upstream_error" ? "backend/API key có thể chưa cấu hình xong" : (data.error || "không kết nối được")) + '</div>';
         } else {
-          aiGradeBox.innerHTML = '<div class="wr-title">Kết quả chấm bằng AI</div><div class="wr-line" style="white-space:pre-wrap">' + data.reply.replace(/</g,"&lt;") + '</div>';
+          aiGradeBox.innerHTML = '<div class="wr-title">Kết quả chấm bài</div><div class="wr-line" style="white-space:pre-wrap">' + data.reply.replace(/</g,"&lt;") + '</div>';
         }
       }catch(e){
         aiGradeBox.innerHTML = '<div class="wr-title">Lỗi</div><div class="wr-line">Không kết nối được tới backend — kiểm tra lại kết nối mạng.</div>';
@@ -2086,7 +2112,7 @@ function renderMain(){
           html += '<div class="warn-item"><div class="w-snip">"' + w.snippet + '"</div><div class="w-tip">' + w.tip + '</div></div>';
         });
       } else {
-        html += '<div class="wr-sub">Cảnh báo ngữ pháp</div><div class="empty-note">Không phát hiện lỗi nào trong danh sách lỗi thường gặp đã kiểm tra — nhưng công cụ này chỉ dò được vài mẫu lỗi cố định, không phải kiểm tra ngữ pháp đầy đủ. Nên dùng nút "Copy để nhờ AI chấm" để được chấm kỹ hơn.</div>';
+        html += '<div class="wr-sub">Cảnh báo ngữ pháp</div><div class="empty-note">Không phát hiện lỗi nào trong danh sách lỗi thường gặp đã kiểm tra — nhưng công cụ này chỉ dò được vài mẫu lỗi cố định, không phải kiểm tra ngữ pháp đầy đủ. Nên dùng nút "Chấm bài (trong app)" ở trên để được chấm kỹ hơn.</div>';
       }
       reportBox.innerHTML = html;
       reportBox.style.display = "block";
@@ -2096,8 +2122,8 @@ function renderMain(){
       var prompt = "Đề bài: " + d.writing.replace(/<[^>]+>/g,"") + "\n\nBài viết của tôi:\n" + ta.value +
         "\n\n---\nChấm bài này theo 3 tiêu chí: (1) đúng ngữ pháp/thì, (2) tự nhiên như người bản xứ viết không — chỉ ra mọi câu nghe như dịch từ tiếng Việt và viết lại, (3) gợi ý 2 cách diễn đạt nâng cao hơn. Giải thích bằng tiếng Việt.";
       function done(ok){
-        copyBtn.textContent = ok ? "Đã copy — dán vào chat với AI!" : "Không copy được, hãy tự chọn & copy";
-        setTimeout(function(){ copyBtn.textContent = "Copy để nhờ AI chấm"; }, 2500);
+        copyBtn.textContent = ok ? "Đã copy — dán vào chat khác để chấm!" : "Không copy được, hãy tự chọn & copy";
+        setTimeout(function(){ copyBtn.textContent = "Copy để nhờ chấm bài"; }, 2500);
       }
       if(navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(prompt).then(function(){done(true);}, function(){done(false);});
@@ -2316,6 +2342,14 @@ function renderFreeTalk(container){
     container.appendChild(el("div","score-pill","🗣 "+r.wpm+" từ/phút · ⏸ "+r.pauses+" lần dừng >2s · "+r.words+" từ"));
     container.appendChild(el("div","reading-hint",wpmBand(r.wpm)));
     container.appendChild(el("div","empty-note","Mục tiêu là GIẢM SỐ LẦN DỪNG DÀI, không phải nói nhanh — 95 wpm đều đặn nghe thoải mái hơn 130 wpm giật cục."));
+    if(freeTalkState.transcript){
+      var scriptBox = el("div",null);
+      scriptBox.style.marginTop = "10px";
+      scriptBox.appendChild(el("div","wr-sub","Transcript bạn vừa nói"));
+      scriptBox.appendChild(el("div","ex-line", freeTalkState.transcript.replace(/</g,"&lt;")));
+      container.appendChild(scriptBox);
+    }
+    container.appendChild(buildSpeakingFeedbackBox(freeTalkState.topic, function(){ return freeTalkState.transcript; }));
   }
   renderFreeTalkHistory(container);
 }
@@ -2508,7 +2542,7 @@ function renderQA(){
     if(!text || !text.trim()) return;
     state.qa.push({role:"user", content:text.trim()});
     save(); renderQAChatLog(logEl);
-    statusEl.textContent = "AI đang trả lời...";
+    statusEl.textContent = "Đang trả lời...";
     try{
       var res = await fetch(AI_WORKER_URL.replace(/\/chat$/,"/ask"), {
         method:"POST",

@@ -211,7 +211,8 @@ Rules:
   "Ngữ pháp cần sửa:" — list concrete grammar/tense mistakes as "sai → đúng" with a one-line reason each. If none, say so briefly.
   "Nói tự nhiên hơn:" — quote any phrase that sounds like a word-by-word translation from Vietnamese and rewrite it naturally. If none, say so briefly.
   "Để nói tốt hơn:" — 1-2 concrete, actionable SPEAKING tips based specifically on this transcript (e.g. use a chunk instead of a filler pause, connect ideas with a linking phrase, vary sentence length) — not generic advice.
-- Keep the whole reply under 200 words. No preamble, no closing remarks, no markdown headers/asterisks.`;
+  "Bản tham khảo:" — MUST be the last section. On the line right after this label, write ONLY a corrected, natural, complete English version of the learner's answer (same content/ideas they tried to express, not a different answer) that they can read aloud and practice — no Vietnamese, no extra commentary, nothing else on those lines.
+- Keep the whole reply (excluding the "Bản tham khảo" section) under 200 words. No preamble, no closing remarks, no markdown headers/asterisks.`;
 
 async function handleFeedback(request, env, origin) {
   let body;
