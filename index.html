@@ -276,6 +276,9 @@
   .fab{ position:fixed; bottom:20px; right:20px; z-index:40; background:var(--accent); color:#fff; border:none; border-radius:24px; padding:11px 18px; font-size:0.84rem; font-weight:600; box-shadow:var(--shadow); display:flex; align-items:center; gap:7px; }
   .fab:hover{ background:var(--accent-strong); }
   @media (max-width:780px){ .fab{ padding:10px 14px; } .fab .lbl{ display:none; } }
+  .fab.fab-qa{ bottom:84px; background:var(--gold); }
+  .fab.fab-qa:hover{ background:var(--gold); opacity:0.88; }
+  @media (max-width:780px){ .fab.fab-qa{ bottom:20px; right:150px; } }
 </style>
 
 <div class="app">
@@ -292,6 +295,16 @@
 </div>
 
 <button class="fab" id="fabErrLog"><span>✎</span><span class="lbl">Error Log</span></button>
+<button class="fab fab-qa" id="fabQA"><span>💬</span><span class="lbl">Hỏi đáp nhanh</span></button>
+
+<div class="errlog-overlay" id="qaOverlay">
+  <div class="errlog-panel">
+    <button class="errlog-close" id="closeQA">✕</button>
+    <h3>Hỏi đáp nhanh</h3>
+    <div class="sub">Hỏi bất kỳ điều gì về ngữ pháp, từ vựng, hoặc nội dung đang học — AI giải thích chi tiết bằng tiếng Việt (khác với khung Trò chuyện AI, vốn dành để luyện phản xạ nói).</div>
+    <div id="qaBody"></div>
+  </div>
+</div>
 
 <div class="errlog-overlay" id="fluencyOverlay">
   <div class="errlog-panel">
@@ -851,6 +864,7 @@ state.fluency = state.fluency || [];
 state.freetalk = state.freetalk || [];
 state.chunkDrill = state.chunkDrill || {attempts:0, hits:0};
 state.pron = state.pron || {};
+state.qa = state.qa || [];
 state.roadmapOpen = !!state.roadmapOpen;
 
 var freeTalkState = { topic:null, transcript:"", rec:null, timerId:null, countdownId:null, lastResult:null };
@@ -2383,11 +2397,107 @@ function renderFluencyBody(){
   body.appendChild(saveBtn);
 }
 
+/* ---------------- Hỏi đáp nhanh (general Q&A, separate from the fluency-practice chat) ---------------- */
+
+function renderQAChatLog(logEl){
+  var hist = state.qa;
+  logEl.innerHTML = "";
+  if(hist.length===0){
+    logEl.appendChild(el("div","empty-note","Chưa có câu hỏi nào — gõ hoặc dùng micro để bắt đầu."));
+  }
+  hist.forEach(function(m){
+    var bubble = el("div","chat-bubble "+(m.role==="user"?"me":"ai"));
+    bubble.appendChild(el("div","chat-text",m.content));
+    if(m.role==="assistant"){
+      var replayBtn = el("button","chat-replay","🔊");
+      replayBtn.title = "Nghe lại";
+      replayBtn.addEventListener("click", function(){ speak(m.content, 0.95); });
+      bubble.appendChild(replayBtn);
+    }
+    logEl.appendChild(bubble);
+  });
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function renderQA(){
+  var body = document.getElementById("qaBody");
+  body.innerHTML = "";
+  var logEl = el("div","chat-log");
+  body.appendChild(logEl);
+  renderQAChatLog(logEl);
+  var statusEl = el("div","chat-status","");
+  body.appendChild(statusEl);
+
+  async function sendQA(text){
+    if(!text || !text.trim()) return;
+    state.qa.push({role:"user", content:text.trim()});
+    save(); renderQAChatLog(logEl);
+    statusEl.textContent = "AI đang trả lời...";
+    try{
+      var res = await fetch(AI_WORKER_URL.replace(/\/chat$/,"/ask"), {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify({
+          context: currentDay().topic,
+          history: state.qa.slice(0,-1),
+          message: text.trim()
+        })
+      });
+      var data = await res.json();
+      if(!res.ok || !data.reply){
+        statusEl.textContent = "Lỗi: " + (data.error==="upstream_error" ? "backend/API key có thể chưa cấu hình xong" : (data.error || "không kết nối được"));
+        return;
+      }
+      state.qa.push({role:"assistant", content:data.reply});
+      save(); renderQAChatLog(logEl);
+      statusEl.textContent = "";
+    }catch(e){
+      statusEl.textContent = "Không kết nối được tới backend — kiểm tra lại kết nối mạng.";
+    }
+  }
+
+  var ctr = el("div","dict-controls");
+  var typed = document.createElement("input");
+  typed.type = "text"; typed.placeholder = "Gõ câu hỏi của bạn...";
+  typed.style.flex = "1"; typed.style.minWidth = "180px";
+  typed.addEventListener("keydown", function(e){ if(e.key==="Enter" && typed.value.trim()){ sendQA(typed.value); typed.value=""; } });
+  ctr.appendChild(typed);
+  var sendBtn = el("button","btn small","Gửi");
+  sendBtn.addEventListener("click", function(){ if(typed.value.trim()){ sendQA(typed.value); typed.value=""; } });
+  ctr.appendChild(sendBtn);
+  if(SpeechRec){
+    var micBtn = el("button","btn ghost small","🎤 Nói");
+    var activeRec = null;
+    micBtn.addEventListener("click", function(){
+      if(activeRec){ activeRec.stop(); return; }
+      micBtn.textContent = "⏹ Đang nghe...";
+      activeRec = startRecording(function(interim){ typed.value = interim; }, function(finalText){
+        micBtn.textContent = "🎤 Nói"; activeRec = null;
+        if(finalText){ typed.value = ""; sendQA(finalText); }
+      }, function(){ micBtn.textContent = "🎤 Nói"; activeRec = null; });
+    });
+    ctr.appendChild(micBtn);
+  } else {
+    body.appendChild(el("div","empty-note","Ghi âm cần Chrome/Edge. Bạn vẫn có thể gõ chữ để hỏi."));
+  }
+  var clearBtn = el("button","btn ghost small","Xóa hội thoại");
+  clearBtn.addEventListener("click", function(){ state.qa = []; save(); renderQAChatLog(logEl); });
+  ctr.appendChild(clearBtn);
+  body.appendChild(ctr);
+}
+
+function openQA(){ document.getElementById("qaOverlay").classList.add("open"); renderQA(); }
+function closeQA(){ document.getElementById("qaOverlay").classList.remove("open"); }
+
 function openFluency(){ document.getElementById("fluencyOverlay").classList.add("open"); renderFluencyBody(); renderFluencyHistory(); }
 function closeFluency(){ document.getElementById("fluencyOverlay").classList.remove("open"); }
 document.getElementById("openFluency").addEventListener("click", openFluency);
 document.getElementById("closeFluency").addEventListener("click", closeFluency);
 document.getElementById("fluencyOverlay").addEventListener("click", function(e){ if(e.target===this) closeFluency(); });
+
+document.getElementById("fabQA").addEventListener("click", openQA);
+document.getElementById("closeQA").addEventListener("click", closeQA);
+document.getElementById("qaOverlay").addEventListener("click", function(e){ if(e.target===this) closeQA(); });
 
 document.getElementById("openErrLog").addEventListener("click", openErrLog);
 document.getElementById("fabErrLog").addEventListener("click", openErrLog);

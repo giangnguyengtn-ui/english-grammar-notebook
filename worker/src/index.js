@@ -140,6 +140,68 @@ async function handleGrade(request, env, origin) {
   return json({ reply }, 200, origin);
 }
 
+const SYSTEM_PROMPT_ASK = `You are a knowledgeable, patient English tutor answering quick study questions from a Vietnamese adult learner (B1-B2) — this is a Q&A helper, NOT a speaking-practice conversation partner.
+
+Rules:
+- Answer in Vietnamese; quote English words/sentences as needed.
+- Give clear, sufficiently detailed explanations — grammar rules, word meanings, usage differences, whatever is asked. Unlike casual chat, thorough explanations ARE wanted here.
+- Include 1-2 short example sentences when it helps illustrate the point.
+- If relevant, name the grammar concept (e.g. "Present Perfect", "stative verb", "collocation").
+- Keep answers focused: a few sentences to a short paragraph, unless the learner explicitly asks to go deeper.
+- If the question is ambiguous, ask ONE brief clarifying question instead of guessing.`;
+
+async function handleAsk(request, env, origin) {
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "invalid_json" }, 400, origin);
+  }
+
+  const context = String(body.context || "").slice(0, 200);
+  const message = String(body.message || "").slice(0, 1000);
+  let history = Array.isArray(body.history) ? body.history : [];
+  history = history.slice(-16).map((m) => ({
+    role: m.role === "assistant" ? "assistant" : "user",
+    content: String(m.content || "").slice(0, 1000),
+  }));
+
+  if (!message.trim()) {
+    return json({ error: "empty_message" }, 400, origin);
+  }
+
+  const messages = [...history, { role: "user", content: message }];
+
+  const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      system: context ? `${SYSTEM_PROMPT_ASK}\n\nHọc viên đang xem bài: ${context}` : SYSTEM_PROMPT_ASK,
+      messages,
+    }),
+  });
+
+  if (!anthropicRes.ok) {
+    const errText = await anthropicRes.text();
+    return json({ error: "upstream_error", detail: errText.slice(0, 300) }, 502, origin);
+  }
+
+  const data = await anthropicRes.json();
+  const reply = (data.content || [])
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("\n")
+    .trim();
+
+  return json({ reply }, 200, origin);
+}
+
 function json(obj, status, origin) {
   return new Response(JSON.stringify(obj), {
     status,
@@ -162,6 +224,10 @@ export default {
 
     if (url.pathname === "/grade" && request.method === "POST") {
       return handleGrade(request, env, origin);
+    }
+
+    if (url.pathname === "/ask" && request.method === "POST") {
+      return handleAsk(request, env, origin);
     }
 
     if (url.pathname === "/health") {
